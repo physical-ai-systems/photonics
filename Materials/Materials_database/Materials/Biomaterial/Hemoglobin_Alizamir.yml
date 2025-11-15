@@ -1,0 +1,29 @@
+# Copyright for this dataset 
+
+REFERENCES: "
+@article{doi:10.1021/acsomega.2c00746,
+author = {Alizamir, Aida and Gholami, Amin and Bahrami, Nader and Ostadhassan, Mehdi},
+title = {Refractive Index of Hemoglobin Analysis: A Comparison of Alternating Conditional Expectations and Computational Intelligence Models},
+journal = {ACS Omega},
+volume = {7},
+number = {38},
+pages = {33769-33782},
+year = {2022},
+doi = {10.1021/acsomega.2c00746},
+URL = {https://doi.org/10.1021/acsomega.2c00746},
+eprint = {https://doi.org/10.1021/acsomega.2c00746}
+}"
+COMMENTS: None 
+DATA:
+  - type: formula 1
+    variables: concentration temperature wavelength
+    outputs: n
+    ranges: 
+      concentration: 0 150
+      temperature: 290 320
+      wavelength: 400 700 
+    units:
+      concentration: g/L
+      temperature: K
+      wavelength: nm
+    coefficients: 0.000153666146350 -0.000101861894337 -0.000162023650231 0.000000110738826 1.421225072812270

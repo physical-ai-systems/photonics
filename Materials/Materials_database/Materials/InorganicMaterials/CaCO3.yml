@@ -1,0 +1,21 @@
+# Copyright for this dataset 
+
+REFERENCES: "
+@article{}
+"
+
+COMMENTS: None 
+DATA:
+  - type: tabulated
+    variables: concentration wavelength
+    outputs: n
+    ranges:
+      concentration: 0 0.5
+      wavelength: 400 800
+    units:
+      concentration: g/mL
+      wavelength: nm
+    data:
+     wavelength:    None
+     concentration: 0 0.100 0.200 0.300 0.400 0.500
+     n: 1.334 1.341 1.352 1.354 1.358 1.358
