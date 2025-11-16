@@ -1,16 +1,6 @@
 import torch
 import numpy as np
 import torch.nn as nn
-
-# try: 
-#     import cupy as backend
-#     device = 'cuda'
-# except:
-#     import scipy as backend
-#     device = 'cpu'
-
-# current cupy version does not support all the special functions required for the implementation
-
 import scipy as backend
 device = 'cpu'
 

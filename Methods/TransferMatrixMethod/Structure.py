@@ -87,24 +87,3 @@ class Structure(nn.Module):
     @property
     def device(self):
         return self.layers[0].device
-        
-            
-
-
-
-
-    
-
-# Other ideas 
-# periodic structure, quasi-periodic structure, random structure, layers, etc. 
-# thickness of each layer with function number sin, cos, exp, etc. 
-# refractive index of each layer with function number sin, cos, exp, etc.
-# phonon structure ... 
-# annluar structure for phonoic...
-# mesh optimization 
-# phonon scattering, electron scattering, etc.
-# parameters 
-# refractive index as function (concenration, temperature, etc.)
-# photnoic time crystal 
-# electromagnetic time crystal-> distance (fully studied)  + time (?? + quantum)
-# different parts for TransferMatrixMethod, FDTD, etc. 
