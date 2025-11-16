@@ -1,0 +1,9 @@
+matplotlib
+torch
+scipy
+pandas
+numpy
+pillow
+GitPython
+plotly
+Document

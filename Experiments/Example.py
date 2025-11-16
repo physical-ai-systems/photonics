@@ -19,14 +19,6 @@ from Study.Study                             import SaveData, LoadData
 from Methods.PhysicalQuantity                import PhysicalQuantity
 import traceback
 
-def get_variable_material(wavelength, variableProperty, batch_size, **kwargs):
-    refractive_index_variable_material = refractive_index_PVA(wavelength.values*1e9, variableProperty.values)
-    refractive_index_variable_material = refractive_index_variable_material.unsqueeze(0).repeat(batch_size,1,1)
-    variableMaterial                   = Material(wavelength, name="PVA", refractive_index=refractive_index_variable_material)
-    property_value                     = PhysicalQuantity(values=refractive_index_variable_material, units='RIU', name='Refractive index')
-    return variableMaterial, property_value
-
-
 def material_sensor(wavelength, method,
                             N, rho0,
                             layer_1_thickness, layer_2_thickness, defect_thickness,
@@ -35,28 +27,30 @@ def material_sensor(wavelength, method,
                             batch_size,
                             **kwargs):
     
-    # get the variable material
-    variableMaterial, _ = get_variable_material(wavelength, variableProperty, batch_size)
-
+    
     # broadcast the values
     wavelength.broadcast([batch_size,len(variableProperty.values), *wavelength.values.shape])
     
-    Si                 = Material(wavelength, name="Si",   refractive_index=3.7)
-    SiO2               = Material(wavelength, name="SiO2", refractive_index=1.45)
-    Air                = Material(wavelength, name="Air",  refractive_index=1)
-    material_porose_1 = CompositeMaterial.get_material('PorousMedium', [Si,variableMaterial], porosity=porosity_1)
+    lossless           = Material(wavelength, name="lossless",   refractive_index=3.3)
+    Si                 = Material(wavelength, name="Si",   refractive_index=1.3855)
+    SiO2               = Material(wavelength, name="SiO2", refractive_index=1.4618)
+    #Air                = Material(wavelength, name="Air",  refractive_index=1)
+    #material_porose_1 = CompositeMaterial.get_material('PorousMedium', [Si,variableMaterial], porosity=porosity_1)
 
     # Define the layers
-    layer0 = Layer(SiO2,thickness=rho0)
-    layerd = Layer(variableMaterial,  thickness=defect_thickness)
-    layer1 = Layer(material_porose_1, thickness=layer_1_thickness)
-    layer2 = Layer(variableMaterial,  thickness=layer_2_thickness)
-    layerf = Layer(SiO2, thickness=1000e-9)
+    #layer0 = Layer(SiO2,thickness=rho0)
+    #layerd = Layer(variableMaterial,  thickness=defect_thickness)
+    #layer1 = Layer(material_porose_1, thickness=layer_1_thickness)
+    #layer2 = Layer(variableMaterial,  thickness=layer_2_thickness)
+    #layerf = Layer(SiO2, thickness=1000e-9)
+    layerA = Layer(lossless, thickness=22.73e-9)
+    layerB = Layer(Si, thickness=54.13e-9)
+    layerD = Layer(SiO2, thickness=51.31e-9)
 
     # Define the structure
-    structure = Structure([layer0, [layer1, layer2], layerd ,[layer1, layer2],layerf],
+    structure = Structure([[layerA, layerB], layerD ,[layerA, layerB]],
                                         layers_parameters = {'method':'repeat', 
-                                                                'layers_repeat':[1,int(N),1,int(N),1],
+                                                                'layers_repeat':[int(N),1,int(N)],
                                                                 })                                        # transfer the structure to the device   structure.to(method.device)
    
 
@@ -80,14 +74,14 @@ def get_parameters():
     # Define the method
     method = PhotonicTransferMatrix()
     batch_size = 1
-    wavelength = WaveLength(ranges=[420,750],steps=0.005, units="m", unit_prefix="n")
+    wavelength = WaveLength(ranges=[300,300],steps=0.005, units="m", unit_prefix="n")
 
     N                 =  10
     rho0              =  500 * 1e-9 # m
     porosity_1        =  torch.tensor(0.7)
-    layer_1_thickness = 50   * 1e-9 # m 
-    layer_2_thickness = 70   * 1e-9 # m
-    defect_thickness  = 25  * 1e-9 # m
+    layer_1_thickness = 22.73e-9 # m 
+    layer_2_thickness = 54.13e-9 # m
+    defect_thickness  = 51.31e-9 # m
     variableProperty   = PhysicalQuantity(values=torch.tensor([0,70]), units='Gy', name='$\gamma$  dose') # Gamma ray dose in Gy
 
     parameters = {
