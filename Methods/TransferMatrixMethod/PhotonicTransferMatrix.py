@@ -10,9 +10,9 @@ class PhotonicTransferMatrix:
     def p_value(self,material,mode, theta):
         # This function gives p value
         if   mode == "TE":
-            p = torch.cos(theta) * material.permittivity/material.permeability
+            p = torch.cos(theta) * material.refractive_index
         elif mode == "TM":
-            p = torch.cos(theta) * material.permeability/material.permittivity
+            p = torch.cos(theta) / material.refractive_index
         else:
             raise ValueError("mode must be TE or TM")
         return p
@@ -25,11 +25,12 @@ class PhotonicTransferMatrix:
     def transfer_matrix(self,layer,theta=0,mode='TE'):
         # This function gives the transfer matrix
         pi_2 = self.pi / 2
-        k = self.k_wavevector(layer.material)
-        p = self.p_value(layer.material,mode)
+        k = self.k_wavevector(layer.material, theta)
+        p = self.p_value(layer.material,mode, theta)
 
         
         M = torch.zeros((*k.shape,2,2), dtype = torch.complex128)
+        delta = k * layer.thickness
                 
         M[...,0,0] = pi_2 * k_rho[...,0] * ( y_dash[...,0] * j[...,1] - j_dash[...,0] * y[...,1]) 
         M[...,0,1] = (  1j / p ) * pi_2 * k_rho[...,0] * ( j[...,0] * y[...,1] - y[...,0] * j[...,1]) 
@@ -48,7 +49,6 @@ class PhotonicTransferMatrix:
         rho      = torch.zeros(len(boundary_layers),2) # rho_beginning, rho_end
         k        = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,len(boundary_layers))
         p        = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,len(boundary_layers))
-        c_factor = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,*rho.shape, dtype = torch.complex128)
         
         M = transfer_matrix
 
