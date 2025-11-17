@@ -7,3 +7,5 @@ pillow
 GitPython
 plotly
 Document
+pyyaml
+gitpython
