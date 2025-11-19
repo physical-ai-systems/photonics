@@ -14,80 +14,99 @@
 <body class="bg-slate-100 text-slate-800 min-h-screen p-6">
 
     <div class="max-w-7xl mx-auto mb-6">
+        <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
+            <h1 class="text-2xl font-bold text-slate-800">AI-Powered Photonics Design Platform</h1>
+            <!-- <h3 class="text-sm font-bold text-slate-400 uppercase mb-2">Changing the future of photonic inverse design: Unleash Photonics potential.</h3> -->
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-6">
         <div class="table-container">
             
-            <div class="input-config-col flex flex-col gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
-                    <h1 class="text-2xl font-bold text-slate-800">Metamaterial Config</h1>
-                    <p class="text-sm text-slate-500 mt-1">Define periodicity ($\lambda$) and Fill Factor (R).</p>
-                </div>
-                
-                <div class="bg-white p-6 rounded-xl shadow-md space-y-3">
-                    <button onclick="updateInputPlot()" class="w-full py-2 border border-slate-300 text-slate-600 rounded hover:bg-slate-50 transition">
-                        <i class="fas fa-sync"></i> Preview Input
-                    </button>
-                    <button onclick="sendData()" class="w-full py-3 bg-blue-600 text-white font-semibold rounded shadow hover:bg-blue-700 transition transform active:scale-95">
-                        <i class="fas fa-cube"></i> Build Structure
-                    </button>
-                </div>
-                
-                <div class="bg-white p-4 rounded-xl shadow-md">
-                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-2">Input Interpolation</h3>
-                    <div id="inputPlot" class="w-full h-48 bg-slate-50 rounded border border-slate-100 flex items-center justify-center text-slate-300">
-                        Plot will appear here...
-                    </div>
-                </div>
-            </div>
-
             <div class="input-table-col bg-white p-6 rounded-xl shadow-md">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-semibold text-lg">Parameters</h2>
-                    <div class="space-x-2">
+                    <h2 class="font-semibold text-lg">Please, fill the target spectrum</h2>
+                    <!-- <div class="space-x-2">
                         <button onclick="addColumn()" class="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded text-sm transition">
                             <i class="fas fa-plus"></i> Add Column
                         </button>
                         <button onclick="removeColumn()" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded text-sm transition">
                             <i class="fas fa-minus"></i> Remove Column
                         </button>
-                    </div>
+                    </div> -->
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse" id="inputTable">
                         <thead>
                             <tr class="text-xs text-slate-500 border-b">
-                                <th class="py-2 font-mono w-16">Param</th>
+                                <th class="py-2 font-mono w-16"></th>
                                 <th class="py-2 text-center">1</th>
                                 <th class="py-2 text-center">2</th>
                                 <th class="py-2 text-center">3</th>
+                                <th class="py-2 text-center">4</th>
+                                <th class="py-2 text-center">5</th>
+                                <th class="py-2 text-center">6</th>
+                                <th class="py-2 text-center">7</th>
+                                <th class="py-2 text-center">8</th>
+                                <th class="py-2 text-center">9</th>
+                                <th class="py-2 text-center">10</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="border-b hover:bg-slate-50">
-                                <td class="py-2 font-bold text-blue-600">&lambda;</td>
-                                <td class="p-1"><input type="number" value="2.0" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda"></td>
-                                <td class="p-1"><input type="number" value="2.2" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda"></td>
-                                <td class="p-1"><input type="number" value="2.1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda"></td>
+                                <td class="py-2 font-bold text-blue-600"><span style="font-family: 'STIXGeneral', 'Times New Roman', serif;">&lambda;</span> <span style="font-size:0.9em;">(nm)</span></td>
+                                <td class="p-1"><input type="number" value="400" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="430" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="460" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="490" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="520" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="550" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="580" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="610" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="640" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
+                                <td class="p-1"><input type="number" value="670" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed"></td>
                             </tr>
                             <tr>
-                                <td class="py-2 font-bold text-purple-600">R</td>
+                                <td class="py-2 font-bold text-purple-600">R <span style="font-size:0.9em;">(A.U.)</span></td>
+                                <td class="p-1"><input type="number" value="0.4" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.4" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.4" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
                                 <td class="p-1"><input type="number" value="0.4" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
                                 <td class="p-1"><input type="number" value="0.5" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.5" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.5" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.6" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.6" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
                                 <td class="p-1"><input type="number" value="0.6" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p id="error-msg" class="text-red-500 text-xs mt-3 hidden"><i class="fas fa-exclamation-circle"></i> Error: R must be between 0 and 1.</p>
+                <p id="error-msg" class="text-red-600 text-lg font-semibold mt-3 hidden"><i class="fas fa-exclamation-circle"></i> Error: R must be between 0 and 1.</p>
+            </div>
+
+            <div class="input-config-col flex flex-col gap-6">
+                <div class="bg-white p-4 rounded-xl shadow-md">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-2">Spectrum Plot</h3>
+                    <div id="inputPlot" class="w-full h-48 bg-slate-50 rounded border border-slate-100 flex items-center justify-center text-slate-300">
+                        
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
     <div class="max-w-7xl mx-auto">
+        <div class="mb-4 flex justify-center">
+            <button onclick="sendData()" class="px-8 py-3 bg-blue-600 text-white font-semibold rounded shadow hover:bg-blue-700 transition transform active:scale-95">
+                <i class="fas fa-cube"></i> Build Structure
+            </button>
+        </div>
+        
         <div class="bg-white p-6 rounded-xl shadow-md h-full flex flex-col">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-slate-800">Structure Schematic</h2>
-                <span class="text-xs px-2 py-1 bg-slate-100 rounded text-slate-500 border">Sorted by Wavelength ($\lambda$)</span>
+                 <h2 class="text-xl font-bold text-slate-800">The Generated Structure</h2>
             </div>
             
             <div class="relative flex-grow bg-white rounded-lg overflow-hidden border border-slate-200 shadow-inner" style="min-height: 500px;">

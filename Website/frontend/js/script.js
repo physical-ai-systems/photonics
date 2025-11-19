@@ -1,5 +1,15 @@
   document.addEventListener('DOMContentLoaded', () => {
             updateInputPlot();
+            const table = document.getElementById('inputTable');
+            if (table) {
+                const handler = (e) => {
+                    if (e.target && (e.target.matches('.input-r') || e.target.matches('.input-lambda'))) {
+                        updateInputPlot();
+                    }
+                };
+                table.addEventListener('input', handler, true);
+                table.addEventListener('change', handler, true);
+            }
         });
 
         function addColumn() {
@@ -21,6 +31,7 @@
             tdR.className = "p-1";
             tdR.innerHTML = '<input type="number" value="0.5" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r">';
             bodyRows[1].appendChild(tdR);
+            updateInputPlot();
         }
 
         function removeColumn() {
@@ -31,6 +42,7 @@
                 bodyRows[0].removeChild(bodyRows[0].lastElementChild);
                 bodyRows[1].removeChild(bodyRows[1].lastElementChild);
             }
+            updateInputPlot();
         }
 
         function getData() {
@@ -76,8 +88,8 @@
                 margin: { t: 20, r: 20, l: 40, b: 40 },
                 paper_bgcolor: 'rgba(0,0,0,0)',
                 plot_bgcolor: 'rgba(0,0,0,0)',
-                xaxis: { title: 'Lambda', showgrid: true, gridcolor: '#e2e8f0' },
-                yaxis: { title: 'R', range: [0, 1.1], showgrid: true, gridcolor: '#e2e8f0' }
+                xaxis: { title: 'λ (nm)', showgrid: true, gridcolor: '#e2e8f0' },
+                yaxis: { title: 'R (A.U.)', range: [0, 1.1], showgrid: true, gridcolor: '#e2e8f0' }
             };
 
             Plotly.newPlot('inputPlot', [trace], layout, {displayModeBar: false});
