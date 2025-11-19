@@ -43,7 +43,7 @@ def material_sensor(wavelength, method,
                                                                 })                                        # transfer the structure to the device   structure.to(method.device)
    
 
-    values = method.Reflectance_from_layers(structure.layers, m=0, mode= 'TE')
+    values = method.Reflectance_from_layers(structure.layers, theta=0, mode= 'TE')
     # get the reflectance
     outputs = {}
     outputs['Reflectance']  = PhysicalQuantity(values = values, units='a.u.', name='Reflectance')

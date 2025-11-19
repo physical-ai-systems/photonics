@@ -19,7 +19,7 @@ class PhotonicTransferMatrix:
     
     def k_wavevector(self, material, theta):
         # This function gives k value
-        k = material.wavelength.k * material.reference_index * torch.cos(theta)
+        k = material.wavelength.k * material.refractive_index
         return k
     
     def transfer_matrix(self,layer,theta=0,mode='TE'):
@@ -30,12 +30,12 @@ class PhotonicTransferMatrix:
 
         
         M = torch.zeros((*k.shape,2,2), dtype = torch.complex128)
-        delta = k * layer.thickness
+        delta = layer.thickness * layer.material.refractive_index * torch.cos(theta)
                 
-        M[...,0,0] = pi_2 * k_rho[...,0] * ( y_dash[...,0] * j[...,1] - j_dash[...,0] * y[...,1]) 
-        M[...,0,1] = (  1j / p ) * pi_2 * k_rho[...,0] * ( j[...,0] * y[...,1] - y[...,0] * j[...,1]) 
-        M[...,1,0] = ( -1j * p ) * pi_2 * k_rho[...,0] * ( y_dash[...,0] * j_dash[...,1] - j_dash[...,0] * y_dash[...,1]) 
-        M[...,1,1] = pi_2 * k_rho[...,0] * ( j[...,0] * y_dash[...,1] - y[...,0] * j_dash[...,1]) 
+        M[...,0,0] = torch.cos(k * delta)
+        M[...,0,1] = -(  1j / p ) * torch.sin(k * delta)
+        M[...,1,0] = ( -1j * p ) * torch.sin(k * delta) 
+        M[...,1,1] = torch.cos(k * delta)
       
         return M
     
@@ -48,7 +48,7 @@ class PhotonicTransferMatrix:
 
         rho      = torch.zeros(len(boundary_layers),2) # rho_beginning, rho_end
         k        = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,len(boundary_layers))
-        p        = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,len(boundary_layers))
+        p        = torch.zeros(*boundary_layers[0].material.wavelength.Evalues.shape,len(boundary_layers))
         
         M = transfer_matrix
 
