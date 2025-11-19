@@ -4,3 +4,5 @@ scipy
 sqlite3
 docx
 torch
+fastapi
+uvicorn
