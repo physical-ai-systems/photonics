@@ -1,0 +1,6 @@
+numpy
+pandas
+scipy
+sqlite3
+docx
+torch
