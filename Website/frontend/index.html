@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optics Data Visualization</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen p-6">
+
+    <div class="max-w-7xl mx-auto mb-6">
+        <div class="table-container">
+            
+            <div class="input-config-col flex flex-col gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
+                    <h1 class="text-2xl font-bold text-slate-800">Metamaterial Config</h1>
+                    <p class="text-sm text-slate-500 mt-1">Define periodicity ($\lambda$) and Fill Factor (R).</p>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-md space-y-3">
+                    <button onclick="updateInputPlot()" class="w-full py-2 border border-slate-300 text-slate-600 rounded hover:bg-slate-50 transition">
+                        <i class="fas fa-sync"></i> Preview Input
+                    </button>
+                    <button onclick="sendData()" class="w-full py-3 bg-blue-600 text-white font-semibold rounded shadow hover:bg-blue-700 transition transform active:scale-95">
+                        <i class="fas fa-cube"></i> Build Structure
+                    </button>
+                </div>
+                
+                <div class="bg-white p-4 rounded-xl shadow-md">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-2">Input Interpolation</h3>
+                    <div id="inputPlot" class="w-full h-48 bg-slate-50 rounded border border-slate-100 flex items-center justify-center text-slate-300">
+                        Plot will appear here...
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-table-col bg-white p-6 rounded-xl shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-semibold text-lg">Parameters</h2>
+                    <div class="space-x-2">
+                        <button onclick="addColumn()" class="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded text-sm transition">
+                            <i class="fas fa-plus"></i> Add Column
+                        </button>
+                        <button onclick="removeColumn()" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded text-sm transition">
+                            <i class="fas fa-minus"></i> Remove Column
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="inputTable">
+                        <thead>
+                            <tr class="text-xs text-slate-500 border-b">
+                                <th class="py-2 font-mono w-16">Param</th>
+                                <th class="py-2 text-center">1</th>
+                                <th class="py-2 text-center">2</th>
+                                <th class="py-2 text-center">3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b hover:bg-slate-50">
+                                <td class="py-2 font-bold text-blue-600">&lambda;</td>
+                                <td class="p-1"><input type="number" value="2.0" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda"></td>
+                                <td class="p-1"><input type="number" value="2.2" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda"></td>
+                                <td class="p-1"><input type="number" value="2.1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda"></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-bold text-purple-600">R</td>
+                                <td class="p-1"><input type="number" value="0.4" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.5" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                                <td class="p-1"><input type="number" value="0.6" min="0" max="1" step="0.1" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p id="error-msg" class="text-red-500 text-xs mt-3 hidden"><i class="fas fa-exclamation-circle"></i> Error: R must be between 0 and 1.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-white p-6 rounded-xl shadow-md h-full flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-slate-800">Structure Schematic</h2>
+                <span class="text-xs px-2 py-1 bg-slate-100 rounded text-slate-500 border">Sorted by Wavelength ($\lambda$)</span>
+            </div>
+            
+            <div class="relative flex-grow bg-white rounded-lg overflow-hidden border border-slate-200 shadow-inner" style="min-height: 500px;">
+                <div id="outputPlot" class="absolute inset-0 w-full h-full"></div>
+                
+                <div id="loading" class="absolute inset-0 bg-white/80 z-10 hidden flex items-center justify-center text-blue-600">
+                    <div class="flex flex-col items-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
+                        <span class="font-semibold">Processing Geometry...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dynamicLegend" class="mt-4 flex flex-wrap gap-4 justify-center min-h-[3rem] p-2 rounded bg-slate-50 border border-dashed border-slate-200">
+                <span class="text-sm text-slate-400 italic">Legend will appear here...</span>
+            </div>
+            
+            <div id="statusText" class="text-center text-xs text-slate-400 mt-2">Ready to simulate</div>
+
+        </div>
+    </div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
+

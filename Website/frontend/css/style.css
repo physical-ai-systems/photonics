@@ -1,0 +1,39 @@
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+}
+
+.custom-scroll::-webkit-scrollbar { 
+    height: 10px; 
+}
+.custom-scroll::-webkit-scrollbar-track { 
+    background: #f8fafc; 
+    border-radius: 4px; 
+}
+.custom-scroll::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; 
+    border-radius: 5px; 
+    border: 2px solid #f8fafc; 
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover { 
+    background: #94a3b8; 
+}
+
+
+table th:first-child,
+table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    background-color: #f8fafc; 
+    box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); 
+}
+
+table thead th:first-child {
+    z-index: 30;
+}
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
