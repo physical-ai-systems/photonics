@@ -24,6 +24,7 @@ def material_sensor(wavelength, method,
     # get the variable material
 
     # broadcast the values
+    # N = x
     wavelength.broadcast([batch_size, *wavelength.values.shape])
     
     Si                 = Material(wavelength, name="Si",   refractive_index=3.7)
@@ -34,6 +35,7 @@ def material_sensor(wavelength, method,
     layer0 = Layer(Air)
     layer1 = Layer(SiO2,  thickness=layer_1_thickness)
     layer2 = Layer(Si, thickness=layer_2_thickness)
+    # layerd = Layer(SiO2, thickness=)
     layerf = Layer(SiO2, thickness=1000e-9)
 
     # Define the structure
@@ -41,6 +43,11 @@ def material_sensor(wavelength, method,
                                         layers_parameters = {'method':'repeat', 
                                                                 'layers_repeat':[1,1,1,1],
                                                                 })                                        # transfer the structure to the device   structure.to(method.device)
+    # # Define the structure
+    # structure = Structure([layer0, [layer1, layer2], layerd, [layer1, layer2], layerf],
+    #                                     layers_parameters = {'method':'repeat', 
+    #                                                             'layers_repeat':[1,N,1,N,1],
+    #                                                             })                                        # transfer the structure to the device   structure.to(method.device)
    
 
     values = method.Reflectance_from_layers(structure.layers, theta=0, mode= 'TE')

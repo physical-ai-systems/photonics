@@ -24,14 +24,13 @@ class PhotonicTransferMatrix:
     
     def transfer_matrix(self,layer,theta=0,mode='TE'):
         # This function gives the transfer matrix
-        pi_2 = self.pi / 2
         k = self.k_wavevector(layer.material, theta)
         p = self.p_value(layer.material,mode, theta)
 
         
         M = torch.zeros((*k.shape,2,2), dtype = torch.complex128)
         delta = layer.thickness * layer.material.refractive_index * torch.cos(theta)
-                
+        
         M[...,0,0] = torch.cos(k * delta)
         M[...,0,1] = -(  1j / p ) * torch.sin(k * delta)
         M[...,1,0] = ( -1j * p ) * torch.sin(k * delta) 
