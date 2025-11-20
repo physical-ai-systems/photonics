@@ -9,6 +9,7 @@ class PhotonicTransferMatrix:
 
     def p_value(self,material,mode, theta):
         # This function gives p value
+        theta = torch.as_tensor(theta, dtype=torch.float64)
         if   mode == "TE":
             p = torch.cos(theta) * material.refractive_index
         elif mode == "TM":
@@ -24,6 +25,7 @@ class PhotonicTransferMatrix:
     
     def transfer_matrix(self,layer,theta=0,mode='TE'):
         # This function gives the transfer matrix
+        theta = torch.as_tensor(theta, dtype=torch.float64)
         k = self.k_wavevector(layer.material, theta)
         p = self.p_value(layer.material,mode, theta)
 
@@ -44,27 +46,32 @@ class PhotonicTransferMatrix:
 
         assert len(boundary_layers) == 2 , "boundary_layers must be a list of two layers" 
         assert mode in ["TE","TM"], "mode must be TE or TM"
-
+        
+        theta = torch.as_tensor(theta, dtype=torch.float64)
         rho      = torch.zeros(len(boundary_layers),2) # rho_beginning, rho_end
         k        = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,len(boundary_layers))
-        p        = torch.zeros(*boundary_layers[0].material.wavelength.Evalues.shape,len(boundary_layers))
+        p        = torch.zeros(*boundary_layers[0].material.wavelength.values.shape,len(boundary_layers))
         
+
+        permittivity_free_space = torch.as_tensor(8.854187817e-12)
+        permeability_free_space = torch.as_tensor(1.2566370614e-6)
+        jo = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[0].material.refractive_index * torch.cos(theta)
+        js = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[1].material.refractive_index * torch.cos(theta)
+
+
         M = transfer_matrix
 
-        for counter in range(len(boundary_layers)):
-            layer = boundary_layers[counter]
-            k[...,counter]      = self.k_wavevector(layer.material)
-            p[...,counter]      = self.p_value(layer.material,mode)
-            rho[counter,...]    = torch.as_tensor(layer.coordinates)
-            c_factor[...,counter,0] = self.C_factor(1,theta,k[...,counter]*(rho[counter,1] if counter == 0 else rho[counter,0]))
-            c_factor[...,counter,1] = self.C_factor(2,theta,k[...,counter]*(rho[counter,1] if counter == 0 else rho[counter,0]))
-
-        numerator   = ( M[...,1,0] + 1j * p[...,0] *  c_factor[...,0,1] * M[...,0,0] ) - ( 1j * p[...,1] * c_factor[...,1,1] * ( M[...,1,1] + 1j * p[...,0] * c_factor[...,0,1] * M[...,0,1] ) ) 
-        denominator = ( -1j * p[...,0] * c_factor[...,0,0] * M[...,0,0] - M[...,1,0] ) - ( 1j * p[...,1] * c_factor[...,1,1] * ( -1j * p[...,0] * c_factor[...,0,0] * M[...,0,1] - M[...,1,1] ) )
-
+        numerator = (M[...,0,0] + M[...,0,1] * js) * jo - (M[...,1,0] + M[...,1,1] * js )
+        denominator = (M[...,0,0] + M[...,0,1] * js) * jo + (M[...,1,0] + M[...,1,1] * js )
+        
         r = numerator / denominator
         R = torch.abs(r)**2
-        return R
+
+        t_numerator = 2 * jo
+        t = t_numerator / denominator
+        T = (js / jo) * torch.abs(t) ** 2
+
+        return R, T
     
 
     def Reflectance_from_layers(self, layers, theta=0, mode='TE'):
@@ -72,8 +79,8 @@ class PhotonicTransferMatrix:
         M = self.transfer_matrix(layers[1],theta,mode)
         for layer in layers[2:-1]:
             M = torch.matmul(M,self.transfer_matrix(layer,theta,mode))
-        R = self.Reflectance([layers[0],layers[-1]],M,theta,mode)
-        return R
+        R, T = self.Reflectance([layers[0],layers[-1]],M,theta,mode)
+        return R, T
     
 
 
