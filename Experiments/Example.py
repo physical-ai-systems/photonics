@@ -44,7 +44,7 @@ def material_sensor(wavelength, method,
     layer1 = Layer(A,  thickness=layer_1_thickness)
     layer2 = Layer(MgF2, thickness=layer_2_thickness)
     layerd = Layer(SiO2, thickness=layer_defect_thickness)
-    layerf = Layer(glass, thickness=49.342e-9)
+    layerf = Layer(glass)
 
     # Define the structure
     structure = Structure([layer0, [layer1, layer2], layerd, [layer1, layer2], layerf],
@@ -53,7 +53,7 @@ def material_sensor(wavelength, method,
                                                                 })                                        # transfer the structure to the device   structure.to(method.device)
     # structure.to(method.device)   
 
-    R, T = method.Reflectance_from_layers(structure.layers, theta=0, mode= 'TE')
+    R, T = method.Reflectance_from_layers(structure.layers, theta_0=0, mode= 'TE')
     # get the reflectance
     outputs = {}
     outputs['Reflectance']  = PhysicalQuantity(values = R, units='a.u.', name='Reflectance')
