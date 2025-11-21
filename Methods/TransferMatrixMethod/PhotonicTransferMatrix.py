@@ -1,13 +1,12 @@
 import torch
 import numpy as np
 class PhotonicTransferMatrix:
-    def __init__(self,
-                *args, **kwargs):
+    def __init__(self, *args, **kwargs):
                  
         self.name       = 'PhotonicTransferMatrix'
         self.pi         = np.pi
 
-    def p_value(self,material,mode, theta):
+    def p_value(self, material, mode, theta):
         # This function gives p value
         theta = torch.as_tensor(theta, dtype=torch.float64)
         if   mode == "TE":
@@ -18,9 +17,9 @@ class PhotonicTransferMatrix:
             raise ValueError("mode must be TE or TM")
         return p
     
-    def k_wavevector(self, material, theta):
+    def k_wavevector(self, material):
         # This function gives k value
-        k = material.wavelength.k * material.refractive_index
+        k = material.wavelength.k
         return k
     
     def snells_law(self, n1, n2, theta1):
@@ -34,20 +33,20 @@ class PhotonicTransferMatrix:
         
         return theta2
     
-    def transfer_matrix(self,layer,theta=0,mode='TE'):
+    def transfer_matrix(self, layer, theta=0, mode='TE'):
         # This function gives the transfer matrix
         theta = torch.as_tensor(theta, dtype=torch.float64)
-        k = self.k_wavevector(layer.material, theta)
+        k0 = self.k_wavevector(layer.material)
         p = self.p_value(layer.material,mode, theta)
 
         
-        M = torch.zeros((*k.shape,2,2), dtype = torch.complex128)
+        M = torch.zeros((*k0.shape,2,2), dtype = torch.complex128)
         delta = layer.thickness * layer.material.refractive_index * torch.cos(theta)
         
-        M[...,0,0] = torch.cos(k * delta)
-        M[...,0,1] = -(  1j / p ) * torch.sin(k * delta)
-        M[...,1,0] = ( -1j * p ) * torch.sin(k * delta) 
-        M[...,1,1] = torch.cos(k * delta)
+        M[...,0,0] = torch.cos(k0 * delta)
+        M[...,0,1] = -(  1j / p ) * torch.sin(k0 * delta)
+        M[...,1,0] = ( -1j * p ) * torch.sin(k0 * delta) 
+        M[...,1,1] = torch.cos(k0 * delta)
       
         return M
     
@@ -63,9 +62,12 @@ class PhotonicTransferMatrix:
 
         permittivity_free_space = torch.as_tensor(8.854187817e-12)
         permeability_free_space = torch.as_tensor(1.2566370614e-6)
-        jo = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[0].material.refractive_index * torch.cos(theta_0)
-        js = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[1].material.refractive_index * torch.cos(theta_f)
+        # jo = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[0].material.refractive_index * torch.cos(theta_0)
+        # js = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[1].material.refractive_index * torch.cos(theta_f)
 
+
+        jo = self.p_value(boundary_layers[0].material, mode, theta_0)
+        js = self.p_value(boundary_layers[1].material, mode, theta_f)
 
         M = transfer_matrix
 
@@ -74,7 +76,7 @@ class PhotonicTransferMatrix:
         numerator_r = (M[...,0,0] + M[...,0,1] * js) * jo - (M[...,1,0] + M[...,1,1] * js )
         
         r = numerator_r / denominator
-        R = torch.abs(r)**2
+        R = torch.abs(r) ** 2
 
         t_numerator = 2 * jo
         t = t_numerator / denominator
@@ -85,17 +87,32 @@ class PhotonicTransferMatrix:
 
     def Reflectance_from_layers(self, layers, theta_0=0, mode='TE'):
         # This function gives the reflectance
+        theta = torch.as_tensor(theta_0, dtype=torch.float64)
 
-        theta_layer = self.snells_law(layers[0].material.refractive_index, layers[1].material.refractive_index, theta_0)
-        M = self.transfer_matrix(layers[1],theta_layer, mode)
+        M = None
 
-        for layer in layers[2:-1]:
-            theta_layer = self.snells_law(layer.material.refractive_index, layers[layers.index(layer)+1].material.refractive_index, theta_layer)
-            M = torch.matmul(M,self.transfer_matrix(layer,theta_layer,mode))
-        
-        theta_f = self.snells_law(layers[-2].material.refractive_index, layers[-1].material.refractive_index, theta_layer)
 
-        R, T = self.Reflectance([layers[0],layers[-1]],M,[theta_0, theta_f],mode)
+
+
+
+        for i in range(1, len(layers)-1):
+            n_prev = layers[i-1].material.refractive_index
+            n_curr = layers[i].material.refractive_index
+
+            # angle inside current layer
+            theta = self.snells_law(n_prev, n_curr, theta)
+
+            M_layer = self.transfer_matrix(layers[i], theta, mode)
+            if M is None:
+                M = M_layer
+            else:
+                M = torch.matmul(M, M_layer)
+
+        n_last = layers[-2].material.refractive_index
+        n_sub  = layers[-1].material.refractive_index
+        theta_f = self.snells_law(n_last, n_sub, theta)  
+
+        R, T = self.Reflectance([layers[0],layers[-1]], M, [theta_0, theta_f], mode)
         return R, T
     
 

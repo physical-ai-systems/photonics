@@ -6,13 +6,14 @@ try:
 except:
     sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '..')))
 import torch
-from Methods.TransferMatrixMethod.Wavelength import WaveLength
-from Methods.TransferMatrixMethod.Structure  import Structure
-from Methods.TransferMatrixMethod.Layer      import Layer
-from Materials.Materials                     import Material 
+from Methods.TransferMatrixMethod.Wavelength             import WaveLength
+from Methods.TransferMatrixMethod.Structure              import Structure
+from Methods.TransferMatrixMethod.Layer                  import Layer
+from Materials.Materials                                 import Material 
 from Methods.TransferMatrixMethod.PhotonicTransferMatrix import PhotonicTransferMatrix
-from Study.Study                             import SaveData, LoadData
-from Methods.PhysicalQuantity                import PhysicalQuantity
+from Study.Study                                         import SaveData, LoadData
+from Methods.PhysicalQuantity                            import PhysicalQuantity
+from Visualization.Visualization                         import plot
 import traceback
 
 def material_sensor(wavelength, method,
@@ -28,8 +29,7 @@ def material_sensor(wavelength, method,
     # broadcast the values
     wavelength.broadcast([batch_size, *wavelength.values.shape])
     
-    Si                 = Material(wavelength, name="Si",   refractive_index=3.7)
-    SiO2               = Material(wavelength, name="SiO2", refractive_index=1.45)
+    SiO2               = Material(wavelength, name="SiO2", refractive_index=1.4618)
     Air                = Material(wavelength, name="Air",  refractive_index=1)
 
     A                  = Material(wavelength, name='A', refractive_index=3.3)
@@ -50,20 +50,24 @@ def material_sensor(wavelength, method,
     structure = Structure([layer0, [layer1, layer2], layerd, [layer1, layer2], layerf],
                                         layers_parameters = {'method':'repeat', 
                                                                 'layers_repeat':[1,N,1,N,1],
-                                                                })                                        # transfer the structure to the device   structure.to(method.device)
-    # structure.to(method.device)   
-
+                                                                })  
+    # structure = Structure([layer0, [layer1, layer2], layerf],
+    #                                     layers_parameters = {'method':'repeat', 
+    #                                                             'layers_repeat':[1,2 * N,1],
+    #                                                             })                                  
+    print(f"Total number of layers: {len(structure.layers)}")
     R, T = method.Reflectance_from_layers(structure.layers, theta_0=0, mode= 'TE')
     # get the reflectance
     outputs = {}
     outputs['Reflectance']  = PhysicalQuantity(values = R, units='a.u.', name='Reflectance')
+    outputs['Transmission'] = PhysicalQuantity(values=T, units='a.u.', name='Transmission')
 
     return outputs
 
 def get_parameters():
     method = PhotonicTransferMatrix()
     batch_size = 1
-    wavelength = WaveLength(ranges=[150,600],steps=0.005, units="m", unit_prefix="n")
+    wavelength = WaveLength(ranges=[150,600], steps=0.005, units="m", unit_prefix="n")
     layer_1_thickness = 22.73   * 1e-9 # m 
     layer_2_thickness = 54.13   * 1e-9 # m
     layer_defect_thickness = 51.31 * 1e-9
@@ -84,4 +88,25 @@ if __name__ == "__main__":
 
     parameters = get_parameters()
     outputs = material_sensor(**parameters)
-    print(outputs)
+    
+    wavelength_nm = parameters['wavelength'].values.squeeze() * 1e9
+    
+    # plot(
+    #     x=wavelength_nm,
+    #     y=outputs['Reflectance'].values.squeeze(),
+    #     names=['Reflectance'],
+    #     x_label='Wavelength (nm)',
+    #     y_label='Reflectance (a.u.)',
+    #     show=True
+    # )
+    
+    plot(
+        x=wavelength_nm,
+        y=outputs['Transmission'].values.squeeze(),
+        names=['Transmission'],
+        x_label='Wavelength (nm)',
+        y_label='Transmission (a.u.)',
+        show=True,
+        width=1600,
+        height=800
+    )
