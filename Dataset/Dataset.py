@@ -103,6 +103,8 @@ class PhotonicDataset(Dataset):
 
         # Generate random layer thicknesses for batch
         layer_thickness = torch.rand(self.batch_size, self.num_layers) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
+        layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
+        layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
         layer_thickness = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])  # Expand to match wavelength dimension  
         
         refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1])
