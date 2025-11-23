@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from attention import Attention
+from Models.attention import Attention
 
 class TransformerBlock(nn.Module):
 
@@ -25,20 +25,20 @@ class TransformerBlock(nn.Module):
 
 
         self.adaptive_norm_mlp = nn.Sequential(
-            nn.SiLU, 
+            nn.SiLU(), 
             nn.Linear(self.hidden_size, 6 * self.hidden_size, bias=True)
         )
 
         nn.init.xavier_uniform_(self.mlp_block[0].weight)
         nn.init.constant_(self.mlp_block[0].bias, 0)
         nn.init.xavier_uniform_(self.mlp_block[-1].weight)
-        nn.init.xavier_uniform_(self.mlp_block[-1].bias, 0)
+        nn.init.constant_(self.mlp_block[-1].bias, 0)
 
         nn.init.constant_(self.adaptive_norm_mlp[-1].bias, 0)
         nn.init.constant_(self.adaptive_norm_mlp[-1].weight, 0)
 
     def forward(self, x, condition):
-        scale_shift_params = self.adaptive_norm_mlp(condition).chunck(6, dim=1)
+        scale_shift_params = self.adaptive_norm_mlp(condition).chunk(6, dim=1)
         (pre_attn_shift, pre_attn_scale, post_attn_scale,
         pre_mlp_shift, pre_mlp_scale, post_mlp_scale) = scale_shift_params
         

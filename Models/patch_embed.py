@@ -10,7 +10,7 @@ def get_patch_position_embedding(pos_emp_dim, grid_size, device):
     grid_h = torch.arange(grid_size_h, dtype=torch.float32, device=device)
     grid_w = torch.arange(grid_size_w, dtype=torch.float32, device=device)
 
-    grid = torch.meshgrid(grid_h, grid_size_w, indexing='ij')
+    grid = torch.meshgrid(grid_h, grid_w, indexing='ij')
     grid = torch.stack(grid, dim = 0)
 
     grid_h_positions = grid[0].reshape(-1)
@@ -74,7 +74,7 @@ class PatchEmbedding(nn.Module):
 
         pos_embed = get_patch_position_embedding(pos_emp_dim=self.hidden_size,
                                                  grid_size=(grid_size_h, grid_size_w),
-                                                 device = x.device())
+                                                 device = x.device)
         
         out += pos_embed
         return out

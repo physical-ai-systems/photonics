@@ -36,6 +36,7 @@ class DiT(nn.Module):
 
 
         self.timestep_emb_dim = config['timestep_emb_dim']
+        self.spectrum_len = config['spectrum_len']
 
 
         self.nh = self.image_height // self.patch_height
@@ -51,6 +52,12 @@ class DiT(nn.Module):
 
         self.t_proj = nn.Sequential(
             nn.Linear(self.timestep_emb_dim, self.hidden_size),
+            nn.SiLU(),
+            nn.Linear(self.hidden_size, self.hidden_size)
+        )
+
+        self.spectrum_proj = nn.Sequential(
+            nn.Linear(self.spectrum_len, self.hidden_size),
             nn.SiLU(),
             nn.Linear(self.hidden_size, self.hidden_size)
         )
@@ -73,6 +80,9 @@ class DiT(nn.Module):
         nn.init.normal_(self.t_proj[0].weight, std=.02)
         nn.init.normal_(self.t_proj[2].weight, std=.02)
 
+        nn.init.normal_(self.spectrum_proj[0].weight, std=.02)
+        nn.init.normal_(self.spectrum_proj[2].weight, std=.02)
+
         nn.init.constant_(self.adaptive_norm_mlp[-1].weight, 0)
         nn.init.constant_(self.adaptive_norm_mlp[-1].bias, 0)
 
@@ -80,21 +90,23 @@ class DiT(nn.Module):
         nn.init.constant_(self.proj_out.bias, 0)
 
 
-    def forward(self, x, t):
+    def forward(self, x, t, spectrum):
 
         out = self.patch_embed_layer(x)
 
 
-        t_emb = get_time_embeddings(torch.as_tensor(t).long, self.timestep_emb_dim)
+        t_emb = get_time_embeddings(torch.as_tensor(t).long(), self.timestep_emb_dim)
 
         t_emb = self.t_proj(t_emb)
+        spectrum_emb = self.spectrum_proj(spectrum)
+        c = t_emb + spectrum_emb
 
         for layer in self.layers:
-            out = layer(out, t_emb)
+            out = layer(out, c)
 
 
-        pre_mlp_shift, pre_mlp_scale = self.adaptive_norm_mlp(t_emb).chunk(2, dim=1)
-        out = (self.norm(out) * (1 + pre_mlp_scale.unsqeeze(1)) + pre_mlp_shift.unsqueeze(1))
+        pre_mlp_shift, pre_mlp_scale = self.adaptive_norm_mlp(c).chunk(2, dim=1)
+        out = (self.norm(out) * (1 + pre_mlp_scale.unsqueeze(1)) + pre_mlp_shift.unsqueeze(1))
 
 
         out = self.proj_out(out)
