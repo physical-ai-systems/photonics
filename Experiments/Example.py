@@ -59,7 +59,7 @@ def material_sensor(wavelength, method,
     R, T = method.Reflectance_from_layers(structure.layers, theta_0=0, mode= 'TE')
     # get the reflectance
     outputs = {}
-    outputs['Reflectance']  = PhysicalQuantity(values = R, units='a.u.', name='Reflectance')
+    outputs['Reflectance']  = PhysicalQuantity(values=R, units='a.u.', name='Reflectance')
     outputs['Transmission'] = PhysicalQuantity(values=T, units='a.u.', name='Transmission')
 
     return outputs
