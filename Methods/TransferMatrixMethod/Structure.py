@@ -19,7 +19,9 @@ class Structure(nn.Module):
 
     def structure_init(self, layers, method='repeat', layers_repeat=[1,10,1], **kwargs):
         if method == 'repeat':
-            self.layers = self.repeat_layers(layers, layers_repeat)     
+            self.layers = self.repeat_layers(layers, layers_repeat)    
+        elif method == 'multi_layer':
+            self.layers = layers
         else:
             raise NotImplementedError("Method {} is not implemented".format(method))           
         
@@ -64,26 +66,11 @@ class Structure(nn.Module):
     def __len__(self):
         return len(self.layers)
     
-    def calculate(self, method, *args, **kwargs):
-        if (method.name == 'TransferMatrixMethod' or method.name =='AnnularPhotonicTransferMatrix') and (not self.layers[1].store_transfer_matrix):
-            M = torch.eye(2,2,dtype=torch.complex128).unsqueeze(0).repeat(self.layers[1].material.refractive_index.shape[0],1,1)
-            for layer in self.layers[1:-1]: # skip first and last layer
-                M = M @ method.transfer_matrix(layer)
-            return M
-        elif (method.name == 'TransferMatrixMethod' or method.name =='AnnularPhotonicTransferMatrix') and (self.layers[1].store_transfer_matrix):
-            M = torch.eye(*self.layer[1].material.refractive_index.shape[0],2,2)
-            for layer in self.layers[1:-1]: # skip first and last layer
-                M = M @ layer.transfer_matrix
-            return M
-        elif method == 'FDTD':
-            raise NotImplementedError("Method {} is not implemented".format(method))
-        else:
-            raise NotImplementedError("Method {} is not implemented".format(method))
-
     def to(self, device):
         for layer in self.layers:
             layer.to(device)
         return self
+    
     @property
     def device(self):
         return self.layers[0].device

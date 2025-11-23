@@ -5,7 +5,7 @@ class Layer(nn.Module):
         super().__init__()
         self.material               = material
         self.method                 = method
-        self.thickness              = torch.as_tensor(thickness) if thickness is not None else None
+        self.thickness = None if thickness is None else thickness if isinstance(thickness, torch.Tensor) else torch.as_tensor(thickness)
 
         self.thickness_round_digits  = 0 # round thickness to n digits, please note that the length of the wavelength scale is added to this number
         self.thickness_round_digits += int((-1*torch.log10(torch.as_tensor(self.material.wavelength.scale)).item())) # add the length of the wavelength scale to the round digits

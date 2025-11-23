@@ -91,10 +91,6 @@ class PhotonicTransferMatrix:
 
         M = None
 
-
-
-
-
         for i in range(1, len(layers)-1):
             n_prev = layers[i-1].material.refractive_index
             n_curr = layers[i].material.refractive_index
