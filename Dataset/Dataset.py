@@ -154,5 +154,5 @@ class PhotonicDataset(Dataset):
             'R': torch.tensor(R_calc, dtype=torch.float32),
             'T': torch.tensor(T_calc, dtype=torch.float32), 
             'material_choice': material_choice,           
-            'layer_thickness': torch.tensor(layer_thickness, dtype=torch.float32)
+            'layer_thickness': torch.tensor(layer_thickness[...,0], dtype=torch.float32)
         } 

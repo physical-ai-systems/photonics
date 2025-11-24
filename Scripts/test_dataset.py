@@ -17,6 +17,7 @@ def main():
     )
     
     samples = dataset[0]
+    print("Sample keys:", samples.keys())
 
 if __name__ == "__main__":
     main()

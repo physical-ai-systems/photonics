@@ -6,3 +6,4 @@ docx
 torch
 fastapi
 uvicorn
+accelerate
