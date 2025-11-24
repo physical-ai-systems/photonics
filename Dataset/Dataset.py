@@ -65,7 +65,8 @@ class PhotonicDataset(Dataset):
             unit_prefix=self.unit_prefix
         )
 
-        self.wavelength.broadcast([self.batch_size, self.wavelength.shape[-1]])
+        # Broadcast wavelength for single sample (no batch dimension in dataset)
+        self.wavelength.broadcast([1, self.wavelength.shape[-1]])
 
         # Initialize the transfer matrix method
         self.method = PhotonicTransferMatrix()
@@ -99,22 +100,22 @@ class PhotonicDataset(Dataset):
         torch.manual_seed(idx)
 
         # Randomly choose material (0: Air, 1: Silicon) using PyTorch
-        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long)
+        material_choice = torch.randint(0, 2, (self.num_layers,), dtype=torch.long)
 
-        # Generate random layer thicknesses for batch
-        layer_thickness = torch.rand(self.batch_size, self.num_layers) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
+        # Generate random layer thicknesses
+        layer_thickness = torch.rand(self.num_layers) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
-        layer_thickness = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])  # Expand to match wavelength dimension  
+        layer_thickness = layer_thickness.unsqueeze(-1).repeat(1, self.wavelength.shape[-1])  # Expand to match wavelength dimension  
         
-        refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1])
+        refractive_indices = torch.empty(self.num_layers, self.wavelength.shape[-1])
 
         # Vectorized assignment using boolean indexing
         material_list = list(self.Materials.keys())
         for i, mat_name in enumerate(material_list):
             mat_mask = (material_choice == i)
             num_true = torch.count_nonzero(mat_mask)
-            mat_n = torch.tensor(self.Materials[mat_name].refractive_index[0,...]).unsqueeze(0).repeat(num_true, 1)
+            mat_n = self.Materials[mat_name].refractive_index[0,...].clone().detach().unsqueeze(0).repeat(num_true, 1)
             refractive_indices[mat_mask,...] = mat_n
         
         air_boundary = self.Materials["Air"]
@@ -130,8 +131,8 @@ class PhotonicDataset(Dataset):
         layers = []
 
         for layer_idx in range(self.num_layers):
-            refractive_indices_layer = refractive_indices[:, layer_idx, :]
-            thickness_layer = thickness.values[:, layer_idx, :]
+            refractive_indices_layer = refractive_indices[layer_idx, :].unsqueeze(0)
+            thickness_layer = thickness.values[layer_idx, :].unsqueeze(0)
             material = Material(
                 self.wavelength,
                 name=f"Layer_{layer_idx}_Material",
@@ -151,8 +152,8 @@ class PhotonicDataset(Dataset):
         )
         
         return {
-            'R': torch.tensor(R_calc, dtype=torch.float32),
-            'T': torch.tensor(T_calc, dtype=torch.float32), 
+            'R': torch.as_tensor(R_calc, dtype=torch.float32).squeeze(0),
+            'T': torch.as_tensor(T_calc, dtype=torch.float32).squeeze(0), 
             'material_choice': material_choice,           
-            'layer_thickness': torch.tensor(layer_thickness[...,0], dtype=torch.float32)
+            'layer_thickness': layer_thickness[..., 0].clone().detach()
         } 
