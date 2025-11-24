@@ -116,5 +116,8 @@ class DiT(nn.Module):
                         nw=self.nw,
                         nh=self.nh)
         
+        # Output is (B, 2, H, W) where:
+        # Channel 0: Layer Thickness
+        # Channel 1: Material Type
         return out
 
