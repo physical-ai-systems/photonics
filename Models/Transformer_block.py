@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from Models.attention import Attention
+from Models.Attention import Attention
 
 class TransformerBlock(nn.Module):
 

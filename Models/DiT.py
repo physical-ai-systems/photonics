@@ -1,7 +1,7 @@
 import torch 
 import torch.nn as nn
-from Models.patch_embed import PatchEmbedding
-from Models.transformer_block import TransformerBlock
+from Models.Patch_embed import PatchEmbedding
+from Models.Transformer_block import TransformerBlock
 from einops import rearrange
 
 def get_time_embeddings(time_steps, temb_dim):
@@ -23,13 +23,13 @@ def get_time_embeddings(time_steps, temb_dim):
 
 
 class DiT(nn.Module):
-    def __init__(self, img_Size, img_channels, config):
+    def __init__(self, img_Size, in_channels, config):
         super().__init__()
 
         num_layers = config["num_layers"]
         self.image_height = img_Size
         self.image_width = img_Size
-        self.img_channels = img_channels
+        self.in_channels = in_channels
         self.hidden_size = config['hidden_size']
         self.patch_height = config['patch_size']
         self.patch_width = config['patch_size']

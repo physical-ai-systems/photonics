@@ -1,7 +1,7 @@
 dataset_params:
   img_path: ''
   img_size: 256
-  img_channels: 2
+  in_channels: 1
 
 diffusion_params:
   num_timesteps : 1000
