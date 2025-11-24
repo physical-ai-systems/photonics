@@ -10,17 +10,16 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from accelerate import Accelerator
 from accelerate.utils import DistributedDataParallelKwargs
-from utils.logger import setup_logger
-from utils.utils import save_checkpoint, patch_compressai_buffer_loading
-from utils.optimizers import configure_optimizers
-from utils.training import train_one_epoch  
-from utils.testing import test_one_epoch
-from utils.args import train_options
-from utils.config import model_config
-from datasets.datasets import ImageFolder, ImageFolderCSV
-from models.get_model import get_model, get_schedulers
-from utils.utils import setup_environment
-from utils.metrics import ImageMetric
+from Utils.logger import setup_logger
+from Utils.Utils import save_checkpoint, patch_compressai_buffer_loading
+from Utils.optimizers import configure_optimizers
+from Utils.training import train_one_epoch  
+from Utils.testing import test_one_epoch
+from Utils.args import train_options
+from Utils.config import model_config
+from Models.get_model import get_model, get_schedulers
+from Utils.Utils import setup_environment
+from Utils.metrics import ImageMetric
 patch_compressai_buffer_loading()
 
 

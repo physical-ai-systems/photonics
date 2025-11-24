@@ -1,5 +1,5 @@
-from models import *
-from loss.rd_loss import RateDistortionLoss, RateDistortionLoss1dToken
+from Models import *
+from Loss.rd_loss import RateDistortionLoss, RateDistortionLoss1dToken
 
 def get_model(config, args, device):
     if config.Model == 'opod_tic':

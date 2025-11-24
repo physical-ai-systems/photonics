@@ -44,7 +44,7 @@ class DiT(nn.Module):
 
         self.patch_embed_layer = PatchEmbedding(image_height=self.image_height,
                                                 image_width=self.image_width,
-                                                img_channels=self.img_channels,
+                                                in_channels=self.in_channels,
                                                 patch_height=self.patch_height,
                                                 patch_width=self.patch_width,
                                                 hidden_size=self.hidden_size)
