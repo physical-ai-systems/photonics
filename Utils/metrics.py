@@ -3,13 +3,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import scipy.interpolate
-import PIL.Image as Image
-from typing import Dict, List, Optional, Tuple, Union
-from pytorch_msssim import ms_ssim
+from typing import Dict
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure, MultiScaleStructuralSimilarityIndexMeasure
-from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
-from torchmetrics.image.fid import FrechetInceptionDistance
-from torchmetrics.image.inception import InceptionScore
 
 
 class ImageMetric(nn.Module):
@@ -18,75 +13,20 @@ class ImageMetric(nn.Module):
         self.psnr = PeakSignalNoiseRatio(data_range=1.0)
         self.ssim = StructuralSimilarityIndexMeasure()
         self.msssim = MultiScaleStructuralSimilarityIndexMeasure()
-        self.lpips = LearnedPerceptualImagePatchSimilarity(net_type='squeeze')
-        self.fid   = FrechetInceptionDistance(feature=2048)
-        self.inception_score = InceptionScore()
         
     def metric_image(self, output, target, size_of_image=None): 
         with torch.no_grad():
-            output, target, original_image_size = self.get_image_sizes(output, target)         
             psnr = self.psnr(output, target).item()
             ssim = self.ssim(output, target).item()
             msssim = self.msssim(output, target).item()
-
-            try :
-                lpips = self.lpips(output, target).item()
-            except:
-                lpips = 0
-                print('Could not compute LPIPS')
-
-            if original_image_size is not None and size_of_image is not None:
-                bit_per_pixel = size_of_image * 8 / (original_image_size[0] * original_image_size[1])
-            else:
-                bit_per_pixel = None
                 
             metrics = { 
                 'psnr': psnr,
                 'ssim': ssim, 
                 'msssim': msssim,
-                'lpips': lpips,
-                'bpp': bit_per_pixel,
                     }
             return metrics
     
-    def get_image_sizes(self, output, target):    
-        original_image_size = target.shape[-2:]
-        reconstructed_image_size = output.shape[-2:]
-
-        min_high = min(original_image_size[0], reconstructed_image_size[0])
-        min_width = min(original_image_size[1], reconstructed_image_size[1])
-        target = target[:,:,:min_high,:min_width]
-        output = output[:,:,:min_high,:min_width]
-        return target, output, (min_high, min_width)
-
-    def get_FID_and_InceptionScore(self, output, target, clip_size=None):
-        if clip_size is not None:
-            output = [img[:,:,:clip_size[0],:clip_size[1]] for img in output]
-            target = [img[:,:,:clip_size[0],:clip_size[1]] for img in target]
-        else:   
-            # clip the images to the same size which is the minimum size
-            min_high = min([img.shape[-2] for img in output + target]) 
-            min_width = min([img.shape[-1] for img in output + target])
-
-            target = [img[:,:,:min_high,:min_width] for img in target]
-            output = [img[:,:,:min_high,:min_width] for img in output]
-
-        target = torch.cat(target, dim=0)
-        output = torch.cat(output, dim=0)
-
-
-        target = target.mul(255).clamp(0, 255).to(torch.uint8)
-        output = output.mul(255).clamp(0, 255).to(torch.uint8)
-
-        self.fid.update(target, real=True)
-        self.fid.update(output, real=False)
-
-        fid = self.fid.compute()
-        self.fid.reset()
-        inception_score = self.inception_score(output)
-
-        print(f'FID: {fid.item()}, Inception Score Mean: {inception_score[0].item()}', 'Inception Score Std: ', inception_score[1].item())
-        return {'fid': fid.item(), 'inception_score_mean': inception_score[0].item(), 'inception_score_std': inception_score[1].item()}
     
     def append_to_metrics_dict(self, new_metrics: Dict, metrics_dict: Dict=None) -> Dict:
         if metrics_dict is None:
@@ -105,7 +45,7 @@ class ImageMetric(nn.Module):
         return avg_metrics
 
 def write_metrics_to_csv(metrics: Dict, csv_path: str, overwrite: bool=False):
-    metrics_col = ['model_name', 'quality', 'dataset_name', 'psnr', 'ssim', 'msssim', 'lpips', 'fid', 'inception_score_mean', 'inception_score_std', 'bpp', 'enc_time', 'dec_time']
+    metrics_col = ['model_name', 'quality', 'dataset_name', 'psnr', 'ssim', 'msssim',]
     if overwrite or not os.path.exists(csv_path):
         with open(csv_path, 'w') as f:
             f.write(','.join(metrics_col) + '\n')
