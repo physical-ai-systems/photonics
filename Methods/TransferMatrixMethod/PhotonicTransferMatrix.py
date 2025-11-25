@@ -60,12 +60,6 @@ class PhotonicTransferMatrix:
         theta_0 = torch.as_tensor(theta[0], dtype=torch.float64)
         theta_f = torch.as_tensor(theta[-1], dtype=torch.float64)
 
-        permittivity_free_space = torch.as_tensor(8.854187817e-12)
-        permeability_free_space = torch.as_tensor(1.2566370614e-6)
-        # jo = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[0].material.refractive_index * torch.cos(theta_0)
-        # js = torch.sqrt(permittivity_free_space / permeability_free_space) * boundary_layers[1].material.refractive_index * torch.cos(theta_f)
-
-
         jo = self.p_value(boundary_layers[0].material, mode, theta_0)
         js = self.p_value(boundary_layers[1].material, mode, theta_f)
 
@@ -113,6 +107,33 @@ class PhotonicTransferMatrix:
         return R, T
     
 
+class PhotonicTransferMatrixVectorized(PhotonicTransferMatrix):
+    '''
+    Vectorized version of PhotonicTransferMatrix for batch processing
+    [B, layer, wavelengths]
+    list layers -> layer[B, layer_num, wavelengths]
+                -> thickness[B, layer_num]
+                -> material: refractive_index[B, layer_num, wavelengths]
+                -> theta [B] or scalar
+
+
+    Returns:       Reflectance [B, wavelengths]
+
+    ----
+    n0 sin(theta0) = n1 sin(theta1)
+    n1 sin(theta1) = n2 sin(theta2)
+
+    n2 sin(theta2) = n0 sin(theta0)
+
+
+    n2 sin(theta2) = n3 sin(theta3)
+    n3 sin(theta3) = n4 sin(theta4)
+    n4 sin(theta4) = n5 sin(theta5)
+    '''
+    def __init__(self, *args, **kwargs):
+        super(PhotonicTransferMatrixVectorized, self).__init__(*args, **kwargs)
+        self.name = 'PhotonicTransferMatrixVectorized'
+        self.pi         = np.pi
 
 
     

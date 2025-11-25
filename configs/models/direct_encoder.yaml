@@ -1,12 +1,4 @@
 Model: DirectEncoder
-
-dataset_params:
-  num_layers: 20
-  ranges: [400, 700]
-  steps: 1
-  batch_size: 64
-  dataset_size: 10000
-
 model_params:
   output_layers: 20
   hidden_size: 256
