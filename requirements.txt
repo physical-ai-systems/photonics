@@ -1,9 +1,9 @@
 numpy
 pandas
 scipy
-sqlite3
 docx
 torch
 fastapi
 uvicorn
 accelerate
+transformers

@@ -11,7 +11,7 @@ from torchvision import transforms
 from accelerate import Accelerator
 from accelerate.utils import DistributedDataParallelKwargs
 from Utils.logger import setup_logger
-from Utils.Utils import save_checkpoint, patch_compressai_buffer_loading
+from Utils.Utils import save_checkpoint
 from Utils.optimizers import configure_optimizers
 from Utils.training import train_one_epoch, train_one_epoch_direct
 from Utils.testing import test_one_epoch, test_one_epoch_direct
@@ -21,7 +21,6 @@ from Models.get_model import get_model, get_schedulers
 from Utils.Utils import setup_environment
 from Utils.metrics import ImageMetric
 from Dataset.Dataset import PhotonicDataset
-patch_compressai_buffer_loading()
 
 
 

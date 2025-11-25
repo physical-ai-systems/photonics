@@ -1,33 +1,9 @@
 # Importing common libraries
-import os                         # OS module in Python provides functions for interacting with the operating system
-import numpy as np                 # NumPy is a Python library used for working with arrays
+import os                         
+import numpy as np               
 import torch
-from Utils.Utils import save_data, load_data, load_yaml, save_yaml, load_data_and_config, get_data_and_config_paths, remove_from_dicts, add_to_dicts
-import plotly.graph_objects as go  # Plotly Graph Objects is the low-level interface to figures, traces and layout in Plotly.py
+import plotly.graph_objects as go  
 
-
-# Pooling 
-def pool_data(data, pool_size):
-    '''
-    data: list of pytorch tensors
-    pool_size: int
-    '''
-    for i in range(len(data)):
-
-        data_size = len(data[i].shape)
-        # pooling operation accept [batch_size, channels, height, width] or [batch_size, channels, length]
-        # check if the shape of the data equals 2 or 1 
-        if data_size == 2: # Do the pool only on the last dimension
-            data[i] = data[i].unsqueeze(0) # [1, height, width]
-        elif data_size == 1:
-            data[i] = data[i].unsqueeze(0).unsqueeze(0) # [1, 1, length]
-        else:
-            raise ValueError('The shape of the data must be 2 or 1')
-        
-        data[i] = torch.nn.functional.avg_pool1d(data[i], pool_size)
-        data[i] = data[i].squeeze(0).squeeze(0)
-
-    return data
 
 def torch_to_numpy(tensor):
     if type(tensor) == torch.Tensor:
@@ -36,8 +12,8 @@ def torch_to_numpy(tensor):
         return tensor
 
 def prepare_data(df = None, # dataframe
-                    x  = None , # x axis
-                    y  = None, # y axis/axes
+                x  = None , # x axis
+                y  = None, # y axis/axes
 ):
     assert x is not None, 'x must be provided'
     assert y is not None, 'y must be provided'
@@ -351,158 +327,3 @@ def get_data_ploty(plot_data, down_size=100):
     z = plot_data['z'].cpu().numpy()[:,::down_size]
     print('x shape:', x.shape, 'y shape:', y.shape, 'z shape:', z.shape)
     return x, y, z
-
-
-
-def plot_data_ploty(data, config, parameters_analysis, save_name,  down_size=100, plot_heatmap = True, plot_analysis = True, labels=None, before_after_label=["", ""]):
-
-    if plot_heatmap:
-        # Create the first figure for the heatmap
-        fig1 = make_subplots(rows=1, cols=2)
-        heatmap = [None, None]
-
-        for i, key in enumerate(['Reflectance_plot0', 'Reflectance_plot1']):
-            plot_data = data[key]
-            x, y, z = get_data_ploty(plot_data, down_size=down_size)
-            colorscale = 'inferno' # 'hot', 'viridis' , 'inferno' , 'plasma' , 'magma' , 'cividis' , 'twilight' , 'twilight_shifted' , 'jet' , 'turbo' , 'thermal' , 'hsv' , 'gray' , 'bone' , 'pink' , 'spring' , 'summer' , 'autumn' , 'winter' , 'cool' , 'Wistia' , 'hot' , 'afmhot' , 'gist_heat' , 'copper'
-
-            heatmap[i] = go.Heatmap(
-                x=x,
-                y=y,
-                z=z,
-                colorscale=colorscale
-            )
-
-        fig1.add_trace(heatmap[0], row=1, col=1)
-        fig1.add_trace(heatmap[1], row=1, col=2)
-
-        fig1.update_layout(
-            xaxis_title=plot_data['x_label'],
-            yaxis_title=plot_data['y_label'],
-            coloraxis_colorbar=dict(title=plot_data['z_label'])
-        )
-        fig1.write_html(os.path.join(save_name + '_heatmap.html'))
-        
-        
-    if plot_analysis:
-        # Create the second figure with subplots
-        # All keys for defect : ['band_gap_begining_plot0', 'band_gap_begining_plot1', 'band_gap_begining_data', 'band_gap_end_plot0', 'band_gap_end_plot1', 'band_gap_end_data', 'band_gap_width_plot0', 'band_gap_width_plot1', 'band_gap_width_data', 'band_gap_center_plot0', 'band_gap_center_plot1', 'band_gap_center_data', 'average_peak_intensity_plot0', 'average_peak_intensity_plot1', 'average_peak_intensity_data', 'peak_wavelength_plot0', 'peak_wavelength_plot1', 'peak_wavelength_data', 'position_left_defect_plot0', 'position_left_defect_plot1', 'position_left_defect_data', 'position_right_defect_plot0', 'position_right_defect_plot1', 'position_right_defect_data', 'FullWidthHalfMax_plot0', 'FullWidthHalfMax_plot1', 'FullWidthHalfMax_data', 'defect_intensity_T_plot0', 'defect_intensity_T_plot1', 'defect_intensity_T_data', 'defect_intensity_R_plot0', 'defect_intensity_R_plot1', 'defect_intensity_R_data', 'defect_peak_width_plot0', 'defect_peak_width_plot1', 'defect_peak_width_data', 'QualityFactor_plot0', 'QualityFactor_plot1', 'QualityFactor_data', 'Sensitivity_plot0', 'Sensitivity_data', 'FigureOfMerit_plot0', 'FigureOfMerit_data']
-        # All keys for periodic : dict_keys(['band_gap_begining_plot0', 'band_gap_begining_plot1', 'band_gap_begining_data', 'band_gap_end_plot0', 'band_gap_end_plot1', 'band_gap_end_data', 'band_gap_width_plot0', 'band_gap_width_plot1', 'band_gap_width_data', 'band_gap_center_plot0', 'band_gap_center_plot1', 'band_gap_center_data', 'average_peak_intensity_plot0', 'average_peak_intensity_plot1', 'average_peak_intensity_data', 'peak_wavelength_plot0', 'peak_wavelength_plot1', 'peak_wavelength_data', 'position_left_defect_plot0', 'position_left_defect_plot1', 'position_left_defect_data', 'position_right_defect_plot0', 'position_right_defect_plot1', 'position_right_defect_data', 'FullWidthHalfMax_plot0', 'FullWidthHalfMax_plot1', 'FullWidthHalfMax_data', 'defect_intensity_T_plot0', 'defect_intensity_T_plot1', 'defect_intensity_T_data', 'defect_intensity_R_plot0', 'defect_intensity_R_plot1', 'defect_intensity_R_data', 'defect_peak_width_plot0', 'defect_peak_width_plot1', 'defect_peak_width_data', 'QualityFactor_plot0', 'QualityFactor_plot1', 'QualityFactor_data', 'Sensitivity_plot0', 'Sensitivity_data', 'FigureOfMerit_plot0', 'FigureOfMerit_data', 'Reflectance_plot0', 'Reflectance_plot1', 'Reflectance_data'])
-
-        if parameters_analysis['strcuture_type'] == 'periodic_with_defect':
-            keys = ['peak_wavelength_plot0', 'FullWidthHalfMax_plot0', 'QualityFactor_plot0', 'Sensitivity_plot0', 'FigureOfMerit_plot0', 'band_gap_begining_plot0', 'band_gap_end_plot0', 'band_gap_width_plot0',   ]
-            keys2 = ['peak_wavelength_plot1', 'FullWidthHalfMax_plot1', 'QualityFactor_plot1', 'Sensitivity_plot0', 'FigureOfMerit_plot0', 'band_gap_begining_plot1', 'band_gap_end_plot1', 'band_gap_width_plot1',  ]
-            rows, cols = 3, 3
-        elif parameters_analysis['strcuture_type'] == 'periodic':
-            keys  = ['band_gap_begining_plot0', 'band_gap_end_plot0', 'band_gap_width_plot0', 'Sensitivity_plot0', 'average_peak_intensity_plot0', 'band_gap_center_plot0',   ]
-            keys2 = ['band_gap_begining_plot1', 'band_gap_end_plot1', 'band_gap_width_plot1', 'Sensitivity_plot0', 'average_peak_intensity_plot1', 'band_gap_center_plot0',  ]
-            rows, cols = 2, 3
-        else:
-            raise ValueError('strcuture_type must be periodic_with_defect or periodic')
-        
-        
-        texts = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)', '(g)', '(h)', '(i)', '(j)', '(k)', '(l)', '(m)', '(n)', '(o)', '(p)', '(q)', '(r)', '(s)', '(t)', '(u)', '(v)', '(w)', '(x)', '(y)', '(z)']
-        colors = ['blue', 'red', 'green', 'black', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan', 'magenta', 'yellow', 'lime', 'teal', 'coral', 'lightblue', 'lightgreen', 'lightcoral', 'lightpink', 'lightgray', 'lightolive', 'lightcyan', 'lightmagenta', 'lightyellow', 'lightlime', 'lightteal', 'lightcoral']
-
-        fig2 = make_subplots(rows=rows, cols=cols, subplot_titles=texts)
-
-        for i, key in enumerate(keys):
-            plot_data = data[key]
-            plot_data2 = data[keys2[i]]
-            row, col = i // 3 + 1, i % 3 + 1
-
-            x = plot_data['x'].cpu().numpy()
-            y = plot_data['y'].cpu().numpy()
-
-            x2 = plot_data2['x'].cpu().numpy()
-            y2 = plot_data2['y'].cpu().numpy()
-
-            trace = go.Scatter(x=x, y=y, mode='lines', line=dict(color=colors[i]),
-                                name=(before_after_label[0]+str(labels[0])+before_after_label[1]) if labels is not None else None)
-            trace2 = go.Scatter(x=x2, y=y2, mode='lines', line=dict(color=colors[i], dash='dash'),
-                                
-                                 name=(before_after_label[0]+str(labels[1])+before_after_label[1]) if labels is not None else None)
-
-            fig2.add_trace(trace, row=row, col=col)
-            fig2.add_trace(trace2, row=row, col=col)
-
-            fig2.update_xaxes(title_text=plot_data['x_label'], row=row, col=col)
-            fig2.update_yaxes(title_text=plot_data['y_label'], row=row, col=col)
-            
-
-        fig2.update_layout(height=900, width=800, showlegend=False)
-        fig2.write_html(os.path.join(save_name + '_analysis.html'))
-
-    return data
-
-class visualization_config():
-    @staticmethod
-    def create_config(name):
-        return {'scale':None, 'x_label':None, 'y_label':None, 'xlim':None, 'ylim':None,'add_to_word':visualization_config.add_to_word(name), 'del_points_x':None, 'del_points_y':None,}
-    
-    @staticmethod
-    def add_to_word(name):
-        add_to_word_dict = {'Reflectance1':0,
-                            'peak_wavelength1':1,
-                            'FullWidthHalfMax1':2,
-                            'QualityFactor1':3,
-                            'Sensitivity0':4,
-                            'FigureOfMerit0':5
-                            }
-        if name in add_to_word_dict.keys():
-            return add_to_word_dict[name]
-
-class visualization():
-
-    @staticmethod
-    def visualize(path, quantity_dict, parameters_analysis, plot_dict={'all_in_one_plot':True, 'down_size':100, 'plot_heatmap':True, 'plot_analysis':True, 'labels':None, 'before_after_label':["", ""]}):
-        # plot_dict = {'all_in_one_plot':True, 'down_size':100, 'plot_heatmap':True, 'plot_analysis':True, 'labels':None, 'before_after_label':["", ""]}
-
-        for key_quantity_dict, _ in quantity_dict.items():
-
-            save_name = key_quantity_dict 
-            data_path, config_path = get_data_and_config_paths(path, save_name)
-            data, config = load_data_and_config(data_path, config_path)
-            path_plot = os.path.join(path, 'plot')
-            os.makedirs(path_plot, exist_ok=True)
-            save_name_plot = os.path.join(path_plot, save_name)
-            if plot_dict['all_in_one_plot']:
-                _ = plot_data_ploty(data, config, parameters_analysis, save_name_plot, down_size=plot_dict['down_size'], plot_heatmap=plot_dict['plot_heatmap'], plot_analysis=plot_dict['plot_analysis'], labels=plot_dict['labels'], before_after_label=plot_dict['before_after_label'])
-            else:
-                keys_to_remove = ['add_to_word']
-                keys_to_add    = {'show':False,}
-                remove_from_dicts(config, keys_to_remove)
-                add_to_dicts(config, keys_to_add)
-
-                for key, value in data.items():
-                    value["save_name"] =  save_name + '_' + key
-                    if "z" in value:
-                        plot_type = 'HeatMap'
-                    else:
-                        plot_type = "plot"
-                
-                    visualization.plot_from_dict(plot_type, value, config[key], path)
-
-    
-    @staticmethod
-    def plot_from_dict(plot_type, dict_data, over_write_dict, save_path):
-        #TODO: Move this to visualize function
-        # replace the parameters from over_write 
-        values_to_remove = ['scale']
-        for key, value in over_write_dict.items():
-            if value is not None:
-                dict_data[key] = value
-            if key in values_to_remove and key in dict_data.keys():
-                dict_data.pop(key)
-        dict_data['save_dir'] = save_path
-
-        # plot the data
-        if plot_type == 'plot':
-            plot(**dict_data)
-        elif plot_type == 'HeatMap':
-            [dict_data['x'], dict_data['z']] = pool_data([dict_data['x'], dict_data['z']], pool_size=4)
-            HeatMap(**dict_data)
-        elif plot_type == 'Bar':
-            Bar(**dict_data)
-        else:
-            raise ValueError('plot_type must be plot, HeatMap or Bar')

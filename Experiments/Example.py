@@ -11,7 +11,7 @@ from Methods.TransferMatrixMethod.Structure              import Structure
 from Methods.TransferMatrixMethod.Layer                  import Layer
 from Materials.Materials                                 import Material 
 from Methods.TransferMatrixMethod.PhotonicTransferMatrix import PhotonicTransferMatrix
-from Study.Study                                         import SaveData, LoadData
+# from Study.Study                                         import SaveData, LoadData
 from Methods.PhysicalQuantity                            import PhysicalQuantity
 from Visualization.Visualization                         import plot
 import traceback
@@ -90,15 +90,6 @@ if __name__ == "__main__":
     outputs = material_sensor(**parameters)
     
     wavelength_nm = parameters['wavelength'].values.squeeze() * 1e9
-    
-    # plot(
-    #     x=wavelength_nm,
-    #     y=outputs['Reflectance'].values.squeeze(),
-    #     names=['Reflectance'],
-    #     x_label='Wavelength (nm)',
-    #     y_label='Reflectance (a.u.)',
-    #     show=True
-    # )
     
     plot(
         x=wavelength_nm,
