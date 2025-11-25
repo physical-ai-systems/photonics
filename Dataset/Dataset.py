@@ -157,9 +157,15 @@ class PhotonicDataset(Dataset):
             # Ensure we copy the numpy array to avoid negative stride issues if any, though unlikely here
             return torch.tensor(np.array(x).copy(), dtype=torch.float32)
 
+        # Normalize thickness for training target (0 to 1)
+        min_th, max_th = self.thickness_range
+        # layer_thickness is (Batch, Layers, Wavelengths), we just need the scalar value per layer
+        # We can take the first wavelength index since it's repeated
+        target_thickness = (layer_thickness[..., 0] - min_th) / (max_th - min_th)
+
         return {
             'R': to_float_tensor(R_calc),
             'T': to_float_tensor(T_calc), 
             'material_choice': material_choice,           
-            'layer_thickness': to_float_tensor(layer_thickness[...,0])
+            'layer_thickness': to_float_tensor(target_thickness)
         } 

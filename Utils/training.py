@@ -92,19 +92,27 @@ def train_one_epoch_direct(
             optimizer.step()
 
         if current_step % 100 == 0 and accelerator.is_main_process:
+            # Calculate Material Accuracy
+            material_logits = output[1] # (B, Layers, 2)
+            material_preds = material_logits.argmax(dim=-1) # (B, Layers)
+            material_targets = batch['material_choice'] # (B, Layers)
+            acc = (material_preds == material_targets).float().mean()
+
             if tb_logger is not None:
                 tb_logger.add_scalar('[train]: loss', loss.item(), current_step)
                 tb_logger.add_scalar('[train]: loss_thickness', loss_dict["loss_thickness"].item(), current_step)
                 tb_logger.add_scalar('[train]: loss_material', loss_dict["loss_material"].item(), current_step)
+                tb_logger.add_scalar('[train]: acc_material', acc.item(), current_step)
                 tb_logger.add_scalar('[train]: lr', optimizer.param_groups[0]['lr'], current_step)
 
             logger_train.info(
                 f"Train epoch {epoch}: ["
-                f"{i*len(spectrum):5d}/{len(train_dataloader.dataset)}"
+                f"{i:5d}/{len(train_dataloader)}"
                 f" ({100. * i / len(train_dataloader):.0f}%)] "
                 f'Loss: {loss.item():.4f} | '
                 f'Thick: {loss_dict["loss_thickness"].item():.4f} | '
-                f'Mat: {loss_dict["loss_material"].item():.4f}'
+                f'Mat: {loss_dict["loss_material"].item():.4f} | '
+                f'Acc: {acc.item():.4f}'
             )
 
         current_step += 1
