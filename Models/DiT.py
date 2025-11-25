@@ -1,8 +1,8 @@
 import torch 
 import torch.nn as nn
-from Models.Patch_embed import PatchEmbedding
 from Models.Transformer_block import TransformerBlock
 from einops import rearrange
+import math
 
 def get_time_embeddings(time_steps, temb_dim):
 
@@ -20,34 +20,29 @@ def get_time_embeddings(time_steps, temb_dim):
     t_emb = torch.cat([torch.sin(t_emb), torch.cos(t_emb)], dim=-1)
     return t_emb
 
+def get_1d_position_embeddings(seq_len, dim, device):
+    pos = torch.arange(seq_len, dtype=torch.float32, device=device)
+    factor = 10000 ** (torch.arange(dim // 2, dtype=torch.float32, device=device) / (dim // 2))
+    emb = pos[:, None] / factor[None, :]
+    emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=-1)
+    if dim % 2 == 1:
+        emb = torch.cat([emb, torch.zeros(seq_len, 1, device=device)], dim=-1)
+    return emb
 
 
 class DiT(nn.Module):
-    def __init__(self, img_Size, in_channels, config):
+    def __init__(self, in_channels, config):
         super().__init__()
 
         num_layers = config["num_layers"]
-        self.image_height = img_Size
-        self.image_width = img_Size
         self.in_channels = in_channels
         self.hidden_size = config['hidden_size']
-        self.patch_height = config['patch_size']
-        self.patch_width = config['patch_size']
-
 
         self.timestep_emb_dim = config['timestep_emb_dim']
         self.spectrum_len = config['spectrum_len']
 
-
-        self.nh = self.image_height // self.patch_height
-        self.nw = self.image_width // self.patch_width
-
-        self.patch_embed_layer = PatchEmbedding(image_height=self.image_height,
-                                                image_width=self.image_width,
-                                                in_channels=self.in_channels,
-                                                patch_height=self.patch_height,
-                                                patch_width=self.patch_width,
-                                                hidden_size=self.hidden_size)
+        # Input projection: (B, N, in_channels) -> (B, N, hidden_size)
+        self.input_proj = nn.Linear(self.in_channels, self.hidden_size)
         
 
         self.t_proj = nn.Sequential(
@@ -74,7 +69,7 @@ class DiT(nn.Module):
             nn.Linear(self.hidden_size, 2 * self.hidden_size, bias=True)
         )
 
-        self.proj_out = nn.Linear(self.hidden_size, self.patch_height * self.patch_width * self.img_channels)
+        self.proj_out = nn.Linear(self.hidden_size, self.in_channels)
 
 
         nn.init.normal_(self.t_proj[0].weight, std=.02)
@@ -88,11 +83,19 @@ class DiT(nn.Module):
 
         nn.init.constant_(self.proj_out.weight, 0)
         nn.init.constant_(self.proj_out.bias, 0)
+        
+        nn.init.xavier_uniform_(self.input_proj.weight)
+        nn.init.constant_(self.input_proj.bias, 0)
 
 
     def forward(self, x, t, spectrum):
 
-        out = self.patch_embed_layer(x)
+        out = self.input_proj(x) # (B, N, Hidden)
+
+        # Add positional embeddings
+        seq_len = x.shape[1]
+        pos_emb = get_1d_position_embeddings(seq_len, self.hidden_size, x.device)
+        out = out + pos_emb.unsqueeze(0)
 
 
         t_emb = get_time_embeddings(torch.as_tensor(t).long(), self.timestep_emb_dim)
@@ -110,13 +113,8 @@ class DiT(nn.Module):
 
 
         out = self.proj_out(out)
-        out = rearrange(out, 'b (nh nw) (ph pw c) -> b c (nh ph) (nw pw)',
-                        ph=self.patch_height,
-                        pw=self.patch_width,
-                        nw=self.nw,
-                        nh=self.nh)
         
-        # Output is (B, 2, H, W) where:
+        # Output is (B, N, 2) where:
         # Channel 0: Layer Thickness
         # Channel 1: Material Type
         return out

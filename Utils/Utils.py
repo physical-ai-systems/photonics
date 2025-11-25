@@ -11,7 +11,7 @@ import struct
 import torch.distributed as dist
 from pathlib import Path
 from torchvision.transforms import ToPILImage
-from utils.func import update_registered_buffers, remap_old_keys
+from Utils.func import update_registered_buffers, remap_old_keys
 
 try:
     from compressai.entropy_models import EntropyBottleneck, GaussianConditional

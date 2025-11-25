@@ -2,8 +2,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.metrics import ImageMetric
-from utils.utils import AverageMeter
+from Utils.metrics import ImageMetric
+from Utils.Utils import AverageMeter
 import random
 
 
@@ -181,3 +181,39 @@ def test_model(test_dataloader, net, vae, logger_test, save_dir, epoch):
         f"Avg Encoding Latency:: {avg_enc_time.avg:.4f} | "
         f"Avg decoding Latency:: {avg_dec_time.avg:.4f}"
     )
+
+def test_one_epoch_direct(epoch, test_dataloader, model, criterion, logger_val, tb_logger, accelerator):
+    accelerator.wait_for_everyone()
+    model.eval()
+
+    loss_meter = AverageMeter()
+    loss_thickness_meter = AverageMeter()
+    loss_material_meter = AverageMeter()
+
+    with torch.no_grad():
+        for i, batch in enumerate(test_dataloader):
+            spectrum = batch['R'].float()
+            
+            output = model(spectrum)
+            loss_dict = criterion(output, batch)
+
+            loss_meter.update(loss_dict["loss"])
+            loss_thickness_meter.update(loss_dict["loss_thickness"])
+            loss_material_meter.update(loss_dict["loss_material"])
+
+    # Only log on main process
+    if accelerator.is_main_process:
+        if tb_logger is not None:
+            tb_logger.add_scalar('[val]: loss', loss_meter.avg, epoch + 1)
+            tb_logger.add_scalar('[val]: loss_thickness', loss_thickness_meter.avg, epoch + 1)
+            tb_logger.add_scalar('[val]: loss_material', loss_material_meter.avg, epoch + 1)
+
+        logger_val.info(
+            f"Test epoch {epoch}: "
+            f"Loss: {loss_meter.avg:.4f} | "
+            f"Thick: {loss_thickness_meter.avg:.4f} | "
+            f"Mat: {loss_material_meter.avg:.4f}"
+        )   
+
+    accelerator.wait_for_everyone()
+    return loss_meter.avg

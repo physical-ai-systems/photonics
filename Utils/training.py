@@ -63,3 +63,50 @@ def train_one_epoch(
         current_step += 1
         accelerator.wait_for_everyone()
     return current_step
+
+def train_one_epoch_direct(
+    model, criterion, train_dataloader, optimizer, epoch, clip_max_norm, logger_train, tb_logger, current_step, accelerator
+):
+    model.train()
+    
+    for i, batch in enumerate(train_dataloader):
+        # batch is a dict from PhotonicDataset
+        # 'R': spectrum input
+        # 'layer_thickness', 'material_choice': targets
+        
+        spectrum = batch['R'].float()
+        
+        with accelerator.autocast():
+            optimizer.zero_grad()
+            
+            # Forward pass
+            output = model(spectrum) # returns (thickness, material_logits)
+            
+            # Calculate loss
+            loss_dict = criterion(output, batch)
+            loss = loss_dict["loss"]
+            
+            accelerator.backward(loss)
+            if clip_max_norm > 0:
+                accelerator.clip_grad_norm_(model.parameters(), clip_max_norm)
+            optimizer.step()
+
+        if current_step % 100 == 0 and accelerator.is_main_process:
+            if tb_logger is not None:
+                tb_logger.add_scalar('[train]: loss', loss.item(), current_step)
+                tb_logger.add_scalar('[train]: loss_thickness', loss_dict["loss_thickness"].item(), current_step)
+                tb_logger.add_scalar('[train]: loss_material', loss_dict["loss_material"].item(), current_step)
+                tb_logger.add_scalar('[train]: lr', optimizer.param_groups[0]['lr'], current_step)
+
+            logger_train.info(
+                f"Train epoch {epoch}: ["
+                f"{i*len(spectrum):5d}/{len(train_dataloader.dataset)}"
+                f" ({100. * i / len(train_dataloader):.0f}%)] "
+                f'Loss: {loss.item():.4f} | '
+                f'Thick: {loss_dict["loss_thickness"].item():.4f} | '
+                f'Mat: {loss_dict["loss_material"].item():.4f}'
+            )
+
+        current_step += 1
+        accelerator.wait_for_everyone()
+    return current_step

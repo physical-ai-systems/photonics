@@ -24,14 +24,20 @@ def configure_optimizers(net, args):
 
     optimizer = optim.AdamW(
         (p for p in parameters if p.requires_grad),
-        lr=args.learning_rate,
+        lr=float(args.learning_rate),
         betas=(0.9, 0.999),
         weight_decay=1e-4,
     )
-    aux_optimizer = optim.AdamW(
-        (p for p in aux_parameters if p.requires_grad),
-        lr=args.aux_learning_rate,
-        betas=(0.9, 0.999),
-        weight_decay=1e-4,
-    )
+    
+    if len(aux_parameters) > 0:
+        aux_optimizer = optim.AdamW(
+            (p for p in aux_parameters if p.requires_grad),
+            lr=float(args.aux_learning_rate),
+            betas=(0.9, 0.999),
+            weight_decay=1e-4,
+        )
+    else:
+        aux_optimizer = None
+        
+    return optimizer, aux_optimizer
     return optimizer, aux_optimizer

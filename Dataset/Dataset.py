@@ -114,7 +114,7 @@ class PhotonicDataset(Dataset):
         for i, mat_name in enumerate(material_list):
             mat_mask = (material_choice == i)
             num_true = torch.count_nonzero(mat_mask)
-            mat_n = torch.tensor(self.Materials[mat_name].refractive_index[0,...]).unsqueeze(0).repeat(num_true, 1)
+            mat_n = torch.as_tensor(self.Materials[mat_name].refractive_index[0,...]).unsqueeze(0).repeat(num_true, 1)
             refractive_indices[mat_mask,...] = mat_n
         
         air_boundary = self.Materials["Air"]
@@ -150,9 +150,16 @@ class PhotonicDataset(Dataset):
             mode='TE'
         )
         
+        # Helper to safely convert to float32 tensor
+        def to_float_tensor(x):
+            if isinstance(x, torch.Tensor):
+                return x.detach().float().cpu()
+            # Ensure we copy the numpy array to avoid negative stride issues if any, though unlikely here
+            return torch.tensor(np.array(x).copy(), dtype=torch.float32)
+
         return {
-            'R': torch.tensor(R_calc, dtype=torch.float32),
-            'T': torch.tensor(T_calc, dtype=torch.float32), 
+            'R': to_float_tensor(R_calc),
+            'T': to_float_tensor(T_calc), 
             'material_choice': material_choice,           
-            'layer_thickness': torch.tensor(layer_thickness[...,0], dtype=torch.float32)
+            'layer_thickness': to_float_tensor(layer_thickness[...,0])
         } 

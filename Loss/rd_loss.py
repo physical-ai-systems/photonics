@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from pytorch_msssim import ms_ssim
-from loss.perceptual_loss import PerceptualLoss
-from loss.discriminator import NLayerDiscriminator
+from Loss.perceptual_loss import PerceptualLoss
+from Loss.discriminator import NLayerDiscriminator
 
 
 class RateDistortionLoss(nn.Module):

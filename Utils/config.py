@@ -1,5 +1,5 @@
 import torch.nn as nn
-from utils.utils import Config
+from Utils.Utils import Config
 import yaml
 import torch
 def model_config(config_path=None):

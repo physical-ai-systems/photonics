@@ -1,11 +1,6 @@
 import torch
 import torch.nn as nn
 
-try:  # we don't need gradients (for now)
-    torch.set_grad_enabled(False)  # type: ignore
-except ValueError:
-    print("Error:" + str(ValueError))
-torch.set_default_dtype(torch.float64) 
 
 class PhysicalQuantity(nn.Module):
     def __init__(self, values=None, units=None, unit_prefix=None, ranges=None, steps=None, name=None, reference_index=None, reference_dimension=None, scale=None, shift_from_center=2, **kwargs):
