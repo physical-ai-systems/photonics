@@ -1,0 +1,21 @@
+general:
+  main_path: ./
+  experiment: test_experiment
+  seed: 42
+  mixed_precision: "no"
+  num_workers: 4
+  dataset: ./datasets/
+  dataset_csv: train
+  patch_size: 256
+  batch_size: 16
+  test_batch_size: 16
+  epochs: 100
+  save_every: 10
+  clip_max_norm: 1.0
+  learning_rate: 0.0001
+  aux_learning_rate: 0.001
+  lmbda: 0.01
+  losses: {}
+
+train:
+  config: direct_encoder # Default model config to load

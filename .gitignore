@@ -193,7 +193,7 @@ camera_paths/
 !.vscode/launch.json
 
 # Disbatcher
-configs/
+
 
 # outputs 
 .html

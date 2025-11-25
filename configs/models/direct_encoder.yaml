@@ -1,0 +1,25 @@
+Model: DirectEncoder
+
+dataset_params:
+  num_layers: 20
+  ranges: [400, 700]
+  steps: 1
+  batch_size: 64
+  dataset_size: 10000
+
+model_params:
+  output_layers: 20
+  hidden_size: 256
+  num_layers: 6
+  num_heads: 8
+  head_dim: 32
+  spectrum_len: 301 # (700-400)/1 + 1
+  num_materials: 2
+
+loss_params:
+  lambda_thickness: 10.0
+  lambda_material: 1.0
+
+train_params:
+  lr: 1e-4
+  epochs: 100
