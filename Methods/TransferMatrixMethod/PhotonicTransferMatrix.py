@@ -8,7 +8,8 @@ class PhotonicTransferMatrix:
 
     def p_value(self, material, mode, theta):
         # This function gives p value
-        theta = torch.as_tensor(theta, dtype=torch.float64)
+        device = material.refractive_index.device
+        theta = torch.as_tensor(theta, dtype=torch.float64, device=device)
         if   mode == "TE":
             p = torch.cos(theta) * material.refractive_index
         elif mode == "TM":
@@ -24,9 +25,11 @@ class PhotonicTransferMatrix:
     
     def snells_law(self, n1, n2, theta1):
         # This function applies Snell's law: n1 * sin(theta1) = n2 * sin(theta2)
-        theta1 = torch.as_tensor(theta1, dtype=torch.float64)
-        n1 = torch.as_tensor(n1, dtype=torch.float64)
-        n2 = torch.as_tensor(n2, dtype=torch.float64)
+        device = n1.device if isinstance(n1, torch.Tensor) else (n2.device if isinstance(n2, torch.Tensor) else None)
+        
+        theta1 = torch.as_tensor(theta1, dtype=torch.float64, device=device)
+        n1 = torch.as_tensor(n1, dtype=torch.float64, device=device)
+        n2 = torch.as_tensor(n2, dtype=torch.float64, device=device)
         
         sin_theta2 = (n1 / n2) * torch.sin(theta1)
         theta2 = torch.asin(sin_theta2)
@@ -35,12 +38,14 @@ class PhotonicTransferMatrix:
     
     def transfer_matrix(self, layer, theta=0, mode='TE'):
         # This function gives the transfer matrix
-        theta = torch.as_tensor(theta, dtype=torch.float64)
         k0 = self.k_wavevector(layer.material)
+        device = k0.device
+        
+        theta = torch.as_tensor(theta, dtype=torch.float64, device=device)
         p = self.p_value(layer.material,mode, theta)
 
         
-        M = torch.zeros((*k0.shape,2,2), dtype = torch.complex128)
+        M = torch.zeros((*k0.shape,2,2), dtype = torch.complex128, device=device)
         delta = layer.thickness * layer.material.refractive_index * torch.cos(theta)
         
         M[...,0,0] = torch.cos(k0 * delta)
@@ -57,8 +62,9 @@ class PhotonicTransferMatrix:
         assert len(boundary_layers) == 2 , "boundary_layers must be a list of two layers" 
         assert mode in ["TE","TM"], "mode must be TE or TM"
         
-        theta_0 = torch.as_tensor(theta[0], dtype=torch.float64)
-        theta_f = torch.as_tensor(theta[-1], dtype=torch.float64)
+        device = transfer_matrix.device
+        theta_0 = torch.as_tensor(theta[0], dtype=torch.float64, device=device)
+        theta_f = torch.as_tensor(theta[-1], dtype=torch.float64, device=device)
 
         jo = self.p_value(boundary_layers[0].material, mode, theta_0)
         js = self.p_value(boundary_layers[1].material, mode, theta_f)
@@ -81,7 +87,10 @@ class PhotonicTransferMatrix:
 
     def Reflectance_from_layers(self, layers, theta_0=0, mode='TE'):
         # This function gives the reflectance
-        theta = torch.as_tensor(theta_0, dtype=torch.float64)
+        
+        # Infer device from the first layer's material
+        device = layers[0].material.refractive_index.device
+        theta = torch.as_tensor(theta_0, dtype=torch.float64, device=device)
 
         M = None
 

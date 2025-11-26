@@ -37,9 +37,10 @@ class Material(nn.Module):
         self.only_real = only_real
         if get_all_database_properties:
             self.get_all_database_properties()
-
-        self.permittivity_free_space = torch.as_tensor(8.854187817e-12)
-        self.permeability_free_space = torch.as_tensor(1.2566370614e-6)
+        
+        self.device_val = wavelength.values.device if hasattr(wavelength, 'values') else torch.device('cpu')
+        self.permittivity_free_space = torch.as_tensor(8.854187817e-12, device=self.device_val)
+        self.permeability_free_space = torch.as_tensor(1.2566370614e-6, device=self.device_val)
         path = os.path.dirname(os.path.abspath(__file__))
         self.refractive_index_sqlite_path = os.path.join(path,'refractiveindex_sqlite','refractive.db')
 
@@ -48,7 +49,7 @@ class Material(nn.Module):
             if isinstance(refractive_index, torch.Tensor):
                 assert (wavelength.values.shape[-1] == refractive_index.shape[-1]), "wavelength and refractive_index must have the same shape or be a scalar"
             elif isinstance(refractive_index, (float, int)):
-                refractive_index = torch.ones(wavelength.values.shape) * refractive_index
+                refractive_index = torch.ones(wavelength.values.shape, device=self.device_val) * refractive_index
             else :
                 raise ValueError("refractive_index must be a float, int or torch.Tensor")
             self.refractive_index = refractive_index 
@@ -61,15 +62,15 @@ class Material(nn.Module):
 
             # get refractive index -> convert the wavelength to nanometers as the database uses nanometers
             if only_real:
-                self.refractive_index = torch.as_tensor([material.get_refractiveindex(wl.item()).item() for wl in (wavelength.values.numpy(force=True)*1e9) ])
+                self.refractive_index = torch.as_tensor([material.get_refractiveindex(wl.item()).item() for wl in (wavelength.values.numpy(force=True)*1e9) ], device=self.device_val)
             else:
-                self.refractive_index = torch.as_tensor([material.get_refractiveindex(wl.item()).item() + 1j*material.get_extinctioncoefficient(wl.item()).item() for wl in (wavelength.values.numpy(force=True)*1e9) ])
+                self.refractive_index = torch.as_tensor([material.get_refractiveindex(wl.item()).item() + 1j*material.get_extinctioncoefficient(wl.item()).item() for wl in (wavelength.values.numpy(force=True)*1e9) ], device=self.device_val)
 
         elif permittivity is not None and permeability is not None:
             if isinstance(permittivity, torch.Tensor):
                 assert (wavelength.values.shape[-1] == permittivity.shape[-1]), "wavelength and permittivity must have the same shape or be a scalar"
             elif isinstance(permittivity, (float, int)):
-                permittivity = torch.ones(wavelength.values.shape) * permittivity
+                permittivity = torch.ones(wavelength.values.shape, device=self.device_val) * permittivity
             else :
                 raise ValueError("permittivity must be a float, int or torch.Tensor")
             self.permittivity = permittivity
@@ -77,7 +78,7 @@ class Material(nn.Module):
             if isinstance(permeability, torch.Tensor):
                 assert (wavelength.values.shape[-1] == permeability.shape[-1]), "wavelength and permeability must have the same shape or be a scalar"
             elif isinstance(permeability, (float, int)):
-                permeability = torch.ones(wavelength.values.shape) * permeability
+                permeability = torch.ones(wavelength.values.shape, device=self.device_val) * permeability
             else :
                 raise ValueError("permeability must be a float, int or torch.Tensor")
             self.permeability = permeability
@@ -130,7 +131,7 @@ class Material(nn.Module):
     
     def get_permeability(self):
         if self.permeability is None:
-            self.permeability = 1 * torch.ones(self.refractive_index.shape)
+            self.permeability = 1 * torch.ones(self.refractive_index.shape, device=self.refractive_index.device)
         self.permeability = self.permeability * self.permeability_free_space
 
 

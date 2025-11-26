@@ -45,7 +45,8 @@ class PhotonicDataset(Dataset):
                  batch_size=10,
                  dataset_size=10**6,
                  train_dataset_size=10**6,
-                 test_mode=False
+                 test_mode=False,
+                 device=None
                  ):
         
         self.num_layers = num_layers
@@ -61,6 +62,7 @@ class PhotonicDataset(Dataset):
         self.batch_size = batch_size
         self.train_dataset_size = train_dataset_size
         self.test_mode = test_mode
+        self.device = device if device is not None else torch.device('cpu')
         self.wavelength = WaveLength(
             ranges=self.ranges,
             steps=self.steps,
@@ -68,6 +70,7 @@ class PhotonicDataset(Dataset):
             unit_prefix=self.unit_prefix
         )
 
+        self.wavelength.to(self.device)
         self.wavelength.broadcast([self.batch_size, self.wavelength.shape[-1]])
 
         self.method = PhotonicTransferMatrix()
@@ -103,14 +106,14 @@ class PhotonicDataset(Dataset):
             np.random.seed(self.train_dataset_size + idx)
             torch.manual_seed(self.train_dataset_size + idx)
 
-        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long)
+        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long, device=self.device)
 
-        layer_thickness = torch.rand(self.batch_size, self.num_layers) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
+        layer_thickness = torch.rand(self.batch_size, self.num_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
         layer_thickness = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])  # Expand to match wavelength dimension  
         
-        refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1])
+        refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
 
         material_list = list(self.Materials.keys())
         for i, mat_name in enumerate(material_list):
@@ -151,8 +154,8 @@ class PhotonicDataset(Dataset):
         )
         def to_float_tensor(x):
             if isinstance(x, torch.Tensor):
-                return x.detach().float().cpu()
-            return torch.tensor(np.array(x).copy(), dtype=torch.float32)
+                return x.detach().float()
+            return torch.tensor(np.array(x).copy(), dtype=torch.float32, device=self.device)
 
         min_th, max_th = self.thickness_range
         target_thickness = (layer_thickness[..., 0] - min_th) / (max_th - min_th)
