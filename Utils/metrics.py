@@ -35,13 +35,13 @@ class Metric(nn.Module):
             mse = self.mse(output, target).item()
             msle = self.msle(output, target).item()
             
-            pcc_val = self.pcc(output, target)
-            pcc = pcc_val.mean().item() if pcc_val.numel() > 1 else pcc_val.item()
+            # pcc_val = self.pcc(output, target)
+            # pcc = pcc_val.mean().item() if pcc_val.numel() > 1 else pcc_val.item()
             
             r2s = self.r2s(output, target).item()
             
-            scc_val = self.scc(output, target)
-            scc = scc_val.mean().item() if scc_val.numel() > 1 else scc_val.item()
+            # scc_val = self.scc(output, target)
+            # scc = scc_val.mean().item() if scc_val.numel() > 1 else scc_val.item()
 
             smape = self.smape(output, target).item()
             tds = self.tds(output, target).item()
@@ -54,9 +54,9 @@ class Metric(nn.Module):
                 'mape': mape,
                 'mse': mse,
                 'msle': msle,
-                'pcc': pcc,
+                # 'pcc': pcc,
                 'r2s': r2s,
-                'scc': scc,
+                # 'scc': scc,
                 'smape': smape,
                 'tds': tds,
                 'wmape': wmape
