@@ -4,5 +4,6 @@ model_params:
   hidden_size: 512
   num_layers: 12
   num_heads: 12
+  head_dim: 32
   spectrum_len: 3001 # (700-400)/1 + 1
   num_materials: 2

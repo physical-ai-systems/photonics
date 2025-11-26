@@ -26,7 +26,7 @@ def train_one_epoch(
                 accelerator.clip_grad_norm_(model.parameters(), clip_max_norm)
             optimizer.step()
 
-        if current_step % 100 == 0 and accelerator.is_main_process:
+        if current_step % 10 == 0 and accelerator.is_main_process:
             material_logits = output[1] 
             material_preds = material_logits.argmax(dim=-1)
             material_targets = batch['material_choice']

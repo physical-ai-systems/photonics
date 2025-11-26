@@ -3,6 +3,7 @@ pandas
 scipy
 docx
 torch
+torchvision
 fastapi
 uvicorn
 accelerate
@@ -10,3 +11,4 @@ transformers
 tensorboard
 torchmetrics
 einops
+plotly

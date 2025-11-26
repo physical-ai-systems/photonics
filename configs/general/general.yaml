@@ -1,18 +1,18 @@
 general:
   main_path: ./
-  config: direct_encoder # Default model config to load
+  config: direct_encoder_hpc # direct_encoder # Default model config to load
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"
-  batch_size: 16
-  test_batch_size: 16
+  batch_size: 500
+  test_batch_size: 500
   losses: 
     lambda_thickness: 10.0
     lambda_material: 1.0
   dataset:
     num_layers: 20
     ranges: [400, 700]
-    steps: 1  # hpc 0.1
+    steps: 0.1  # hpc 0.1
     dataset_size: 10000
     # dataset_size_test: 1000
 train:
