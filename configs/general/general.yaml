@@ -1,22 +1,24 @@
 general:
   main_path: ./
+  config: direct_encoder # Default model config to load
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"
-  num_workers: 4
-  dataset: ./datasets/
-  dataset_csv: train
-  patch_size: 256
   batch_size: 16
   test_batch_size: 16
+  losses: 
+    lambda_thickness: 10.0
+    lambda_material: 1.0
+  dataset:
+    num_layers: 20
+    ranges: [400, 700]
+    steps: 1  # hpc 0.1
+    dataset_size: 10000
+    dataset_size_test: 1000
+train:
+  num_workers: 16
+  save_checkpoints: true
   epochs: 100
-  save_every: 10
+  save_every: 2
   clip_max_norm: 1.0
   learning_rate: 0.0001
-  aux_learning_rate: 0.001
-  lmbda: 0.01
-  losses: {}
-  config: direct_encoder # Default model config to load
-
-train:
-  save_checkpoints: true

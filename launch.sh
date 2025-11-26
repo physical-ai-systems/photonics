@@ -1,30 +1,28 @@
 #!/bin/bash -l
-#SBATCH --job-name=8.opod_tic_continous_vq_512_vae_128
+#SBATCH --job-name=0.01_simple_encoder
 #SBATCH --nodes=1
 
 # For a100
 #SBATCH --partition=a100
-#SBATCH --gres=gpu:a100:8 -C a100_80
+#SBATCH --gres=gpu:a100:8
 #SBATCH --time=24:00:00
 
 
 # Default values
-CONFIG="opod_tic_small_vq_512_vae_128"
-EXPERIMENT="8.opod_tic_continous_vq_512_vae_128"
+CONFIG="direct_encoder_hpc"
+EXPERIMENT="01_simple_encoder"
 NUM_GPUS=8
-MIXED_PRECISION="bf16"
+# MIXED_PRECISION="bf16"
 # MIXED_PRECISION="fp16"
-# MIXED_PRECISION="no"
+MIXED_PRECISION="no"
 GRADIENT_ACCUMULATION_STEPS=1
 MAIN_PATH="/home/atuin/b290dc/b290dc10"
-REPO_DIR=$MAIN_PATH"/repos/TokenCompression2"
+REPO_DIR=$MAIN_PATH"/repos/photonics"
 CONFIG=$REPO_DIR"/configs/models/"$CONFIG
-BATCH_SIZE=40
+BATCH_SIZE=100
+TEST_BATCH_SIZE=100
 EPOCHS=200
 LEARNING_RATE=1e-4
-AUX_LEARNING_RATE=0.01
-DATASET="/home/woody/iwnt/iwnt153h/data/images"
-DATASET_CSV=$REPO_DIR"/datasets/csv/train_256" #train_256_one_epoch
 CLIP_MAX_NORM=1
 
 
@@ -43,15 +41,12 @@ echo "Gradient Accumulation Steps: $GRADIENT_ACCUMULATION_STEPS"
 echo "Config:                      $CONFIG"
 echo "Experiment:                  $EXPERIMENT"
 echo "Batch Size (per GPU):        $BATCH_SIZE"
-echo "Test Batch Size:             $BATCH_SIZE"
+echo "Test Batch Size:             $TEST_BATCH_SIZE"
 echo "Effective Batch Size:        $((NUM_GPUS * BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))"
 echo "Epochs:                      $EPOCHS"
 echo "Learning Rate:               $LEARNING_RATE"
-echo "Aux Learning Rate:           $AUX_LEARNING_RATE"
 echo "Clip Max Norm:               $CLIP_MAX_NORM"
 echo "Main Path:                   $MAIN_PATH"
-echo "Dataset:                     ${DATASET:-not specified}"
-echo "Dataset CSV:                 ${DATASET_CSV:-not specified}"
 echo "=================================="
 echo ""
 
@@ -80,14 +75,11 @@ TRAIN_CMD="accelerate launch \
   --config $CONFIG \
   --exp $EXPERIMENT \
   --batch_size $BATCH_SIZE \
-  --test_batch_size $BATCH_SIZE \
+  --test_batch_size $TEST_BATCH_SIZE \
   --epochs $EPOCHS \
   --learning_rate $LEARNING_RATE \
-  --aux_learning_rate $AUX_LEARNING_RATE \
   --main_path $MAIN_PATH \
   --clip_max_norm $CLIP_MAX_NORM \
-  --dataset $DATASET \
-  --dataset_csv $DATASET_CSV \
   --mixed_precision $MIXED_PRECISION \
   --save True"
 

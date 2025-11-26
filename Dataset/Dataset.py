@@ -44,6 +44,8 @@ class PhotonicDataset(Dataset):
                  thickness_units="m",      # meters
                  batch_size=10,
                  dataset_size=10**6,
+                 train_dataset_size=10**6,
+                 test_mode=False
                  ):
         
         self.num_layers = num_layers
@@ -95,8 +97,12 @@ class PhotonicDataset(Dataset):
         """
         
         # Seed for reproducibility of this specific index
-        np.random.seed(idx)
-        torch.manual_seed(idx)
+        if not self.test_mode:
+            np.random.seed(idx)
+            torch.manual_seed(idx)
+        else:
+            np.random.seed(self.train_dataset_size + idx)
+            torch.manual_seed(self.train_dataset_size + idx)
 
         # Randomly choose material (0: Air, 1: Silicon) using PyTorch
         material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long)

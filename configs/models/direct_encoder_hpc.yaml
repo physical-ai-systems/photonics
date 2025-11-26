@@ -1,0 +1,8 @@
+Model: DirectEncoder
+model_params:
+  output_layers: 20
+  hidden_size: 512
+  num_layers: 12
+  num_heads: 12
+  spectrum_len: 3001 # (700-400)/1 + 1
+  num_materials: 2

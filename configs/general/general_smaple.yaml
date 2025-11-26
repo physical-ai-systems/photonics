@@ -4,11 +4,6 @@ general:
   dataset: "/mnt/f/images" # "/home/woody/iwnt/iwnt153h/data/images"
   config: "opod_tic"
 train:
-  dataset:
-      num_layers: 20
-      ranges: [400, 700]
-      steps: 1
-      dataset_size: 10000
   seed: 42
   epochs: 200
   learning_rate: 0.0001

@@ -4,14 +4,5 @@ model_params:
   hidden_size: 256
   num_layers: 6
   num_heads: 8
-  head_dim: 32
   spectrum_len: 301 # (700-400)/1 + 1
   num_materials: 2
-
-loss_params:
-  lambda_thickness: 10.0
-  lambda_material: 1.0
-
-train_params:
-  lr: 1e-4
-  epochs: 100
