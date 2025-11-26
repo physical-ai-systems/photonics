@@ -7,7 +7,7 @@ from torchmetrics.regression import CosineSimilarity, ExplainedVariance, MeanAbs
 
 
 class Metric(nn.Module):
-    def __init__(self):
+    def __init__(self, num_outputs=1):
         super(Metric, self).__init__()
         self.cs = CosineSimilarity(reduction='mean')
         self.ev = ExplainedVariance()
@@ -15,14 +15,18 @@ class Metric(nn.Module):
         self.mape = MeanAbsolutePercentageError()
         self.mse = MeanSquaredError(squared=True)
         self.msle = MeanSquaredLogError()
-        self.pcc = PearsonCorrCoef()
+        self.pcc = PearsonCorrCoef(num_outputs=num_outputs)
         self.r2s = R2Score()
-        self.scc = SpearmanCorrCoef()
+        self.scc = SpearmanCorrCoef(num_outputs=num_outputs)
         self.smape = SymmetricMeanAbsolutePercentageError()
         self.tds = TweedieDevianceScore()
         self.wmape = WeightedMeanAbsolutePercentageError()
         
     def metric(self, output, target): 
+    #     for module in self.children():
+    #         if hasattr(module, 'reset'):
+    #             module.reset()
+
         with torch.no_grad():
             cs = self.cs(output, target).item()
             ev = self.ev(output, target).item()
@@ -30,9 +34,15 @@ class Metric(nn.Module):
             mape = self.mape(output, target).item()
             mse = self.mse(output, target).item()
             msle = self.msle(output, target).item()
-            pcc = self.pcc(output, target).item()
+            
+            pcc_val = self.pcc(output, target)
+            pcc = pcc_val.mean().item() if pcc_val.numel() > 1 else pcc_val.item()
+            
             r2s = self.r2s(output, target).item()
-            scc = self.scc(output, target).item()
+            
+            scc_val = self.scc(output, target)
+            scc = scc_val.mean().item() if scc_val.numel() > 1 else scc_val.item()
+
             smape = self.smape(output, target).item()
             tds = self.tds(output, target).item()
             wmape = self.wmape(output, target).item()

@@ -21,7 +21,10 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
     acc_material_meter     = AverageMeter()
     mae_thickness_nm_meter = AverageMeter() 
 
-    metrics_calculator = Metric()
+    unwrapped_model = get_unwrapped_model(model)
+    num_outputs = getattr(unwrapped_model, 'output_layers', 1)
+
+    metrics_calculator = Metric(num_outputs=num_outputs)
     metrics_calculator.to(accelerator.device)
     accumulated_metrics = {}
 
