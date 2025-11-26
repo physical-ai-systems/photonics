@@ -3,14 +3,14 @@ import torch
 import torch.nn as nn
 import numpy as np
 from typing import Dict
-from torchmetrics.regression import cosine_similarity, explained_variance, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, MeanSquaredLogError, PearsonCorrCoef, R2Score, SpearmanCorrCoef, SymmetricMeanAbsolutePercentageError, TweedieDevianceScore, WeightedMeanAbsolutePercentageError
+from torchmetrics.regression import CosineSimilarity, ExplainedVariance, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, MeanSquaredLogError, PearsonCorrCoef, R2Score, SpearmanCorrCoef, SymmetricMeanAbsolutePercentageError, TweedieDevianceScore, WeightedMeanAbsolutePercentageError
 
 
 class Metric(nn.Module):
     def __init__(self):
         super(Metric, self).__init__()
-        self.cs = cosine_similarity(reduction='mean')
-        self.ev = explained_variance()
+        self.cs = CosineSimilarity(reduction='mean')
+        self.ev = ExplainedVariance()
         self.mae = MeanAbsoluteError()
         self.mape = MeanAbsolutePercentageError()
         self.mse = MeanSquaredError(squared=True)
@@ -76,7 +76,6 @@ def write_metrics_to_csv(metrics: Dict, csv_path: str, overwrite: bool=False):
         with open(csv_path, 'w') as f:
             f.write(','.join(metrics_col) + '\n')
     with open(csv_path, 'a') as f:
-        # if the metric is not computed, write an empty string
         row = [str(metrics.get(col, '')) for col in metrics_col]
         f.write(','.join(row) + '\n')
         

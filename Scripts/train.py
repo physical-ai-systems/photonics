@@ -18,7 +18,6 @@ from Utils.args import train_options
 from Utils.config import model_config
 from Models.get_model import get_model, get_schedulers
 from Utils.Utils import setup_environment
-from Utils.metrics import Metric
 from Dataset.Dataset import PhotonicDataset
 
 
@@ -56,6 +55,10 @@ def main():
     
     logger_train = logging.getLogger('train')
     logger_val = logging.getLogger('val')
+
+    if accelerator.is_main_process:
+        logger_train.info(f"Using device: {accelerator.device}")
+
     tb_logger = SummaryWriter(log_dir=experiment_path) if accelerator.is_main_process else None
 
     checkpoint_path = os.path.join(experiment_path, 'checkpoints')
@@ -63,9 +66,9 @@ def main():
     if accelerator.is_main_process:
         os.makedirs(checkpoint_path, exist_ok=True)
     
-    train_dataset = PhotonicDataset( **config.dataset_params, batch_size=args.batch_size)
+    train_dataset = PhotonicDataset( **args.dataset, batch_size=args.batch_size)
 
-    test_dataset = PhotonicDataset( **config.dataset_params, batch_size=args.test_batch_size)
+    test_dataset = PhotonicDataset( **args.dataset, batch_size=args.test_batch_size, test_mode=True)
     
 
     train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True,)
@@ -76,8 +79,8 @@ def main():
     lr_scheduler, lr_scheduler_aux = get_schedulers(optimizer, aux_optimizer, args)
     
 
-    net, criterion, optimizer, aux_optimizer, train_dataloader, test_dataloader, lr_scheduler, lr_scheduler_aux, image_metric = accelerator.prepare(
-        net, criterion, optimizer, aux_optimizer, train_dataloader, test_dataloader, lr_scheduler, lr_scheduler_aux, image_metric
+    net, criterion, optimizer, aux_optimizer, train_dataloader, test_dataloader, lr_scheduler, lr_scheduler_aux = accelerator.prepare(
+        net, criterion, optimizer, aux_optimizer, train_dataloader, test_dataloader, lr_scheduler, lr_scheduler_aux
     )
 
 

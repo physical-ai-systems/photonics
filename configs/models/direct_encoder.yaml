@@ -5,4 +5,5 @@ model_params:
   num_layers: 6
   num_heads: 8
   spectrum_len: 301 # (700-400)/1 + 1
+  head_dim: 32
   num_materials: 2

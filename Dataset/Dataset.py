@@ -59,7 +59,8 @@ class PhotonicDataset(Dataset):
         self.thickness_units = thickness_units
         self.dataset_size = dataset_size
         self.batch_size = batch_size
-
+        self.train_dataset_size = train_dataset_size
+        self.test_mode = test_mode
         self.wavelength = WaveLength(
             ranges=self.ranges,
             steps=self.steps,
@@ -69,7 +70,6 @@ class PhotonicDataset(Dataset):
 
         self.wavelength.broadcast([self.batch_size, self.wavelength.shape[-1]])
 
-        # Initialize the transfer matrix method
         self.method = PhotonicTransferMatrix()
 
         self.Materials = {
@@ -96,7 +96,6 @@ class PhotonicDataset(Dataset):
             'layer_thickness': float - thickness of the middle layer in nm
         """
         
-        # Seed for reproducibility of this specific index
         if not self.test_mode:
             np.random.seed(idx)
             torch.manual_seed(idx)
@@ -104,10 +103,8 @@ class PhotonicDataset(Dataset):
             np.random.seed(self.train_dataset_size + idx)
             torch.manual_seed(self.train_dataset_size + idx)
 
-        # Randomly choose material (0: Air, 1: Silicon) using PyTorch
         material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long)
 
-        # Generate random layer thicknesses for batch
         layer_thickness = torch.rand(self.batch_size, self.num_layers) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
@@ -115,7 +112,6 @@ class PhotonicDataset(Dataset):
         
         refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1])
 
-        # Vectorized assignment using boolean indexing
         material_list = list(self.Materials.keys())
         for i, mat_name in enumerate(material_list):
             mat_mask = (material_choice == i)
@@ -145,28 +141,20 @@ class PhotonicDataset(Dataset):
             )
             layer = Layer(material=material, thickness=thickness_layer)
             layers.append(layer)
-        # Create structure
         structure = Structure(layers=[Layer(air_boundary)] + layers + [Layer(substrate)],
                               layers_parameters={'method': 'multi_layer'})
         
-        # Calculate reflectance and transmission
         R_calc, T_calc = self.method.Reflectance_from_layers(
             structure.layers, 
             theta_0=0, 
             mode='TE'
         )
-        
-        # Helper to safely convert to float32 tensor
         def to_float_tensor(x):
             if isinstance(x, torch.Tensor):
                 return x.detach().float().cpu()
-            # Ensure we copy the numpy array to avoid negative stride issues if any, though unlikely here
             return torch.tensor(np.array(x).copy(), dtype=torch.float32)
 
-        # Normalize thickness for training target (0 to 1)
         min_th, max_th = self.thickness_range
-        # layer_thickness is (Batch, Layers, Wavelengths), we just need the scalar value per layer
-        # We can take the first wavelength index since it's repeated
         target_thickness = (layer_thickness[..., 0] - min_th) / (max_th - min_th)
 
         return {
