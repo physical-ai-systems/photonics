@@ -165,4 +165,75 @@ class PhotonicDataset(Dataset):
             'T': to_float_tensor(T_calc), 
             'material_choice': material_choice,           
             'layer_thickness': to_float_tensor(target_thickness)
-        } 
+        }
+
+    def compute_spectrum(self, layer_thickness, material_choice):
+        """
+        Compute the spectrum from thickness and material indices.
+        
+        Parameters:
+        -----------
+        layer_thickness : torch.Tensor
+            Shape (Batch, Num_Layers). Thickness in nanometers.
+        material_choice : torch.Tensor
+            Shape (Batch, Num_Layers). Material indices.
+            
+        Returns:
+        --------
+        R, T : torch.Tensor
+            Reflectance and Transmission spectra.
+        """
+        batch_size = layer_thickness.shape[0]
+        
+        # Expand thickness to match wavelength dimension
+        # layer_thickness: [B, Layers] -> [B, Layers, Wavelengths]
+        layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
+        
+        refractive_indices = torch.empty(batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
+
+        material_list = list(self.Materials.keys())
+        for i, mat_name in enumerate(material_list):
+            mat_mask = (material_choice == i)
+            num_true = torch.count_nonzero(mat_mask)
+            if num_true > 0:
+                mat_n = torch.as_tensor(self.Materials[mat_name].refractive_index[0,...]).unsqueeze(0).repeat(num_true, 1)
+                refractive_indices[mat_mask,...] = mat_n.to(refractive_indices.device) # Ensure device match
+        
+        air_boundary = self.Materials["Air"]
+        substrate = self.Materials["SiO2"]
+
+        thickness = PhysicalQuantity(
+            values=layer_thickness_exp,
+            units=self.thickness_units,
+            unit_prefix=self.thickness_unit_prefix,
+            name=f"Layer_Thickness"
+        )
+
+        layers = []
+
+        for layer_idx in range(self.num_layers):
+            refractive_indices_layer = refractive_indices[:, layer_idx, :]
+            thickness_layer = thickness.values[:, layer_idx, :]
+            material = Material(
+                self.wavelength,
+                name=f"Layer_{layer_idx}_Material",
+                refractive_index=refractive_indices_layer
+            )
+            layer = Layer(material=material, thickness=thickness_layer)
+            layers.append(layer)
+        
+        structure = Structure(layers=[Layer(air_boundary)] + layers + [Layer(substrate)],
+                              layers_parameters={'method': 'multi_layer'})
+        
+        R_calc, T_calc = self.method.Reflectance_from_layers(
+            structure.layers, 
+            theta_0=0, 
+            mode='TE'
+        )
+        
+        def to_float_tensor(x):
+            if isinstance(x, torch.Tensor):
+                return x.detach().float()
+            return torch.tensor(np.array(x).copy(), dtype=torch.float32, device=self.device)
+
+        return to_float_tensor(R_calc), to_float_tensor(T_calc) 

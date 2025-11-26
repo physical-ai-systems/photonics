@@ -66,13 +66,14 @@ def main():
     if accelerator.is_main_process:
         os.makedirs(checkpoint_path, exist_ok=True)
     
-    train_dataset = PhotonicDataset( **args.dataset, batch_size=args.batch_size)
+    train_dataset = PhotonicDataset( **args.dataset, batch_size=args.batch_size, device=device)
 
-    test_dataset = PhotonicDataset( **args.dataset, batch_size=args.test_batch_size, test_mode=True)
+    test_dataset = PhotonicDataset( **args.dataset, batch_size=args.test_batch_size, test_mode=True, device=device)
     
 
-    train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True,)
-    test_dataloader  = DataLoader(test_dataset,  batch_size=None, shuffle=False,)
+    # num_workers=0 to avoid multiprocessing issues with CUDA and leverage GPU for data generation in main process
+    train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True, num_workers=0)
+    test_dataloader  = DataLoader(test_dataset,  batch_size=None, shuffle=False, num_workers=0)
 
     net, vae, criterion = get_model(config, args, device)
     optimizer, aux_optimizer = configure_optimizers(net, args)

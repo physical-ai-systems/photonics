@@ -327,3 +327,79 @@ def get_data_ploty(plot_data, down_size=100):
     z = plot_data['z'].cpu().numpy()[:,::down_size]
     print('x shape:', x.shape, 'y shape:', y.shape, 'z shape:', z.shape)
     return x, y, z
+
+def plot_spectrum_comparison(
+    wavelength,
+    target_spectrum,
+    pred_spectrum,
+    title="Spectrum Comparison",
+    save_dir=None,
+    save_name="spectrum_comparison",
+    show=False
+):
+    """
+    Plots the target and predicted spectra for comparison.
+
+    Args:
+        wavelength: x-axis values (wavelengths).
+        target_spectrum: y-axis values for the target spectrum.
+        pred_spectrum: y-axis values for the predicted spectrum.
+        title: Title of the plot.
+        save_dir: Directory to save the plot image.
+        save_name: Filename for the saved plot.
+        show: Whether to display the plot.
+
+    Returns:
+        fig: The plotly figure object.
+    """
+    # Convert inputs to numpy if they are tensors
+    wavelength = torch_to_numpy(wavelength).flatten()
+    target_spectrum = torch_to_numpy(target_spectrum).flatten()
+    pred_spectrum = torch_to_numpy(pred_spectrum).flatten()
+
+    # Create figure
+    fig = go.Figure()
+
+    # Add Target Spectrum Trace
+    fig.add_trace(go.Scatter(
+        x=wavelength,
+        y=target_spectrum,
+        mode='lines',
+        name='Target',
+        line=dict(color='black', width=2)
+    ))
+
+    # Add Predicted Spectrum Trace
+    fig.add_trace(go.Scatter(
+        x=wavelength,
+        y=pred_spectrum,
+        mode='lines',
+        name='Prediction',
+        line=dict(color='red', width=2, dash='dash')
+    ))
+
+    # Layout customization
+    fig.update_layout(
+        title=title,
+        xaxis_title="Wavelength (nm)",
+        yaxis_title="Reflectance",
+        template="plotly_white",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        width=800,
+        height=500
+    )
+
+    # Save figure if directory is provided
+    if save_dir:
+        save_image(fig, save_dir, save_name, ['png'], 800, 500)
+
+    if show:
+        fig.show()
+
+    return fig

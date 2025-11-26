@@ -34,8 +34,17 @@ class Structure(nn.Module):
         
     def get_coordinates(self):
         coordinate = 0
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
             if layer.thickness is not None:
+                # Debug print for device mismatch
+                # th_dev = layer.thickness.device if isinstance(layer.thickness, torch.Tensor) else "cpu"
+                # coord_dev = coordinate.device if isinstance(coordinate, torch.Tensor) else "int"
+                # print(f"Layer {i} ({layer.material.name}): Coord dev={coord_dev}, Thick dev={th_dev}")
+                
+                # Ensure coordinate is on the same device as layer.thickness if it's 0 (int)
+                if isinstance(coordinate, int) and coordinate == 0 and isinstance(layer.thickness, torch.Tensor):
+                    coordinate = torch.tensor(0.0, device=layer.thickness.device, dtype=layer.thickness.dtype)
+
                 layer.coordinates = copy.deepcopy([coordinate, coordinate + layer.thickness]) 
                 coordinate = coordinate + layer.thickness
             else:
