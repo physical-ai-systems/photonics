@@ -1,0 +1,5 @@
+- [ ] Adding to device mapping to Dataset class
+- [ ] Finish refactoring 
+- [ ] Adding evaluation metrics for generated structures
+- [ ] Adding plots for output spectra vs target spectra
+- [ ] Adding structure plotting for generated structures and original structures
