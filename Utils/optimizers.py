@@ -1,5 +1,3 @@
-import torch
-import torch.nn as nn
 import torch.optim as optim
 
 
@@ -14,7 +12,6 @@ def configure_optimizers(net, args):
         p for n, p in net.named_parameters() if n.endswith(".quantiles")
     ]
 
-    # Make sure we don't have an intersection of parameters
     params_dict = dict(net.named_parameters())
     inter_params = set(parameters) & set(aux_parameters)
     union_params = set(parameters) | set(aux_parameters)
@@ -39,5 +36,4 @@ def configure_optimizers(net, args):
     else:
         aux_optimizer = None
         
-    return optimizer, aux_optimizer
     return optimizer, aux_optimizer

@@ -1,4 +1,3 @@
-import torch
 
 def get_unwrapped_model(model):
     """Get the unwrapped model from a potentially wrapped model (e.g., DataParallel, DistributedDataParallel)."""
@@ -18,10 +17,8 @@ def train_one_epoch(
         with accelerator.autocast():
             optimizer.zero_grad()
             
-            # Forward pass
-            output = model(spectrum) # returns (thickness, material_logits)
+            output = model(spectrum) 
             
-            # Calculate loss
             loss_dict = criterion(output, batch)
             loss = loss_dict["loss"]
             
@@ -31,10 +28,9 @@ def train_one_epoch(
             optimizer.step()
 
         if current_step % 100 == 0 and accelerator.is_main_process:
-            # Calculate Material Accuracy
-            material_logits = output[1] # (B, Layers, 2)
-            material_preds = material_logits.argmax(dim=-1) # (B, Layers)
-            material_targets = batch['material_choice'] # (B, Layers)
+            material_logits = output[1] 
+            material_preds = material_logits.argmax(dim=-1)
+            material_targets = batch['material_choice']
             acc = (material_preds == material_targets).float().mean()
 
             if tb_logger is not None:

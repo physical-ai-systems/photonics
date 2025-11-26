@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from PIL import Image
-from utils.config import get_device
+from Utils.config import get_device
 def read_image(image_path, device=get_device()):
     image = Image.open(image_path)
     image = image.convert('RGB')

@@ -3,26 +3,53 @@ import torch
 import torch.nn as nn
 import numpy as np
 from typing import Dict
-from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure, MultiScaleStructuralSimilarityIndexMeasure
+from torchmetrics.regression import cosine_similarity, explained_variance, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, MeanSquaredLogError, PearsonCorrCoef, R2Score, SpearmanCorrCoef, SymmetricMeanAbsolutePercentageError, TweedieDevianceScore, WeightedMeanAbsolutePercentageError
 
 
-class ImageMetric(nn.Module):
+class Metric(nn.Module):
     def __init__(self):
-        super(ImageMetric, self).__init__()
-        self.psnr = PeakSignalNoiseRatio(data_range=1.0)
-        self.ssim = StructuralSimilarityIndexMeasure()
-        self.msssim = MultiScaleStructuralSimilarityIndexMeasure()
+        super(Metric, self).__init__()
+        self.cs = cosine_similarity(reduction='mean')
+        self.ev = explained_variance()
+        self.mae = MeanAbsoluteError()
+        self.mape = MeanAbsolutePercentageError()
+        self.mse = MeanSquaredError(squared=True)
+        self.msle = MeanSquaredLogError()
+        self.pcc = PearsonCorrCoef()
+        self.r2s = R2Score()
+        self.scc = SpearmanCorrCoef()
+        self.smape = SymmetricMeanAbsolutePercentageError()
+        self.tds = TweedieDevianceScore()
+        self.wmape = WeightedMeanAbsolutePercentageError()
         
-    def metric_image(self, output, target, size_of_image=None): 
+    def metric(self, output, target): 
         with torch.no_grad():
-            psnr = self.psnr(output, target).item()
-            ssim = self.ssim(output, target).item()
-            msssim = self.msssim(output, target).item()
-                
+            cs = self.cs(output, target).item()
+            ev = self.ev(output, target).item()
+            mae = self.mae(output, target).item()
+            mape = self.mape(output, target).item()
+            mse = self.mse(output, target).item()
+            msle = self.msle(output, target).item()
+            pcc = self.pcc(output, target).item()
+            r2s = self.r2s(output, target).item()
+            scc = self.scc(output, target).item()
+            smape = self.smape(output, target).item()
+            tds = self.tds(output, target).item()
+            wmape = self.wmape(output, target).item()
+
             metrics = { 
-                'psnr': psnr,
-                'ssim': ssim, 
-                'msssim': msssim,
+                'cs': cs,
+                'ev': ev,
+                'mae': mae,
+                'mape': mape,
+                'mse': mse,
+                'msle': msle,
+                'pcc': pcc,
+                'r2s': r2s,
+                'scc': scc,
+                'smape': smape,
+                'tds': tds,
+                'wmape': wmape
                     }
             return metrics
     
@@ -44,7 +71,7 @@ class ImageMetric(nn.Module):
         return avg_metrics
 
 def write_metrics_to_csv(metrics: Dict, csv_path: str, overwrite: bool=False):
-    metrics_col = ['model_name', 'quality', 'dataset_name', 'psnr', 'ssim', 'msssim',]
+    metrics_col = ['model_name', 'quality', 'dataset_name', 'cs', 'ev', 'mae', 'mape', 'mse', 'msle', 'pcc', 'r2s', 'scc', 'smape', 'tds', 'wmape']
     if overwrite or not os.path.exists(csv_path):
         with open(csv_path, 'w') as f:
             f.write(','.join(metrics_col) + '\n')

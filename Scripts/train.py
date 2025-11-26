@@ -12,13 +12,13 @@ from accelerate.utils import DistributedDataParallelKwargs
 from Utils.logger import setup_logger
 from Utils.Utils import save_checkpoint
 from Utils.optimizers import configure_optimizers
-from Utils.training import train_one_epoch, train_one_epoch_direct
-from Utils.testing import test_one_epoch, test_one_epoch_direct
+from Utils.training import train_one_epoch
+from Utils.testing import test_one_epoch
 from Utils.args import train_options
 from Utils.config import model_config
 from Models.get_model import get_model, get_schedulers
 from Utils.Utils import setup_environment
-from Utils.metrics import ImageMetric
+from Utils.metrics import Metric
 from Dataset.Dataset import PhotonicDataset
 
 
@@ -32,13 +32,11 @@ def main():
 
     setup_environment(args.seed)
 
-    # Configure DDP to handle unused parameters
     os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'DETAIL'
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
-    # Initialize Accelerator for distributed training
     accelerator = Accelerator(
-        mixed_precision=args.mixed_precision,  # 'no', 'fp16', 'bf16'
+        mixed_precision=args.mixed_precision, 
         gradient_accumulation_steps=1,
         kwargs_handlers=[ddp_kwargs],
     )
@@ -46,11 +44,9 @@ def main():
 
     experiment_path = os.path.join(args.main_path, 'experiments', args.experiment)
     
-    # Only create directories on main process
     if accelerator.is_main_process:
         os.makedirs(experiment_path, exist_ok=True)
 
-    # Wait for main process to create directories
     accelerator.wait_for_everyone()
 
     setup_logger('train', experiment_path, 'train_' + args.experiment, level=logging.INFO,
@@ -60,8 +56,6 @@ def main():
     
     logger_train = logging.getLogger('train')
     logger_val = logging.getLogger('val')
-
-    # TensorBoard logger only on main process
     tb_logger = SummaryWriter(log_dir=experiment_path) if accelerator.is_main_process else None
 
     checkpoint_path = os.path.join(experiment_path, 'checkpoints')

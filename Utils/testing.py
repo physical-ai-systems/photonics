@@ -2,10 +2,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from Utils.metrics import ImageMetric
+from Utils.metrics import Metric
 from Utils.Utils import AverageMeter
-import random
-
 
 def get_unwrapped_model(model):
     """Get the underlying model from a wrapped model (e.g., DDP, FSDP)."""
@@ -17,13 +15,11 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
     accelerator.wait_for_everyone()
     model.eval()
 
-    loss_meter           = AverageMeter()
-    loss_thickness_meter = AverageMeter()
-    loss_material_meter  = AverageMeter()
-    acc_material_meter   = AverageMeter()
-    
-    # Metrics for real-world interpretation
-    mae_thickness_nm_meter = AverageMeter() # Mean Absolute Error in nanometers
+    loss_meter             = AverageMeter()
+    loss_thickness_meter   = AverageMeter()
+    loss_material_meter    = AverageMeter()
+    acc_material_meter     = AverageMeter()
+    mae_thickness_nm_meter = AverageMeter() 
 
     with torch.no_grad():
         for i, batch in enumerate(test_dataloader):
@@ -35,14 +31,6 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
             loss_meter.update(loss_dict["loss"])
             loss_thickness_meter.update(loss_dict["loss_thickness"])
             loss_material_meter.update(loss_dict["loss_material"])
-            
-            # Calculate MAE in nm
-            # Output thickness is normalized [0, 1]
-            # Target thickness is normalized [0, 1]
-            # We need to denormalize to get nm error
-            # Assuming range is [20, 200] as per Dataset default
-            # Ideally we should get this from dataset, but for now hardcode or pass as arg
-            # Let's assume standard range for now: 180nm span
             
             pred_thickness = output[0]
             target_thickness = batch['layer_thickness']
