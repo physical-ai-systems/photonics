@@ -1,4 +1,3 @@
-
 def get_unwrapped_model(model):
     """Get the unwrapped model from a potentially wrapped model (e.g., DataParallel, DistributedDataParallel)."""
     if hasattr(model, 'module'):
