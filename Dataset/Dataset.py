@@ -44,7 +44,7 @@ class PhotonicDataset(Dataset):
                  thickness_units="m",      # meters
                  batch_size=10,
                  dataset_size=10**6,
-                 train_dataset_size=10**6,
+                 train_dataset_size=None,
                  test_mode=False,
                  device=None
                  ):
@@ -58,9 +58,9 @@ class PhotonicDataset(Dataset):
         self.thickness_steps = thickness_steps
         self.thickness_unit_prefix = thickness_unit_prefix
         self.thickness_units = thickness_units
-        self.dataset_size = dataset_size
+        self.dataset_size = dataset_size if not test_mode else dataset_size // 100
         self.batch_size = batch_size
-        self.train_dataset_size = train_dataset_size
+        self.train_dataset_size = train_dataset_size if train_dataset_size is not None else dataset_size
         self.test_mode = test_mode
         self.device = device if device is not None else torch.device('cpu')
         self.wavelength = WaveLength(
