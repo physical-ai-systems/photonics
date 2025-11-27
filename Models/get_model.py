@@ -1,15 +1,20 @@
 import torch
 from Models.DirectEncoder import DirectEncoder
+from Models.SimpleEncoder import SimpleEncoder
 from Loss.structure_loss import StructureLoss
 
 
 def get_model(config, args, device):
-    if config.Model == 'DirectEncoder':
-        net = DirectEncoder(config=config.model_params)
+    if config.name == 'DirectEncoder':
+        net = DirectEncoder(config=config)
+        loss = StructureLoss(**args.losses)
+        vae = None
+    elif config.name == 'SimpleEncoder':
+        net = SimpleEncoder(config=config)
         loss = StructureLoss(**args.losses)
         vae = None
     else:
-        raise ValueError(f"Model {config.Model} not found or not supported in this cleanup.")
+        raise ValueError(f"Model {config.name} not found or not supported in this cleanup.")
     return net, vae, loss
 
 def get_schedulers(optimizer, aux_optimizer, args):

@@ -43,6 +43,7 @@ class PhotonicDataset(Dataset):
                  batch_size=10,
                  dataset_size=10**6,
                  train_dataset_size=None,
+                 test_dataset_downsize=100,
                  test_mode=False,
                  device=None
                  ):
@@ -56,7 +57,7 @@ class PhotonicDataset(Dataset):
         self.thickness_steps = thickness_steps
         self.thickness_unit_prefix = thickness_unit_prefix
         self.thickness_units = thickness_units
-        self.dataset_size = dataset_size if not test_mode else dataset_size // 100
+        self.dataset_size = dataset_size if not test_mode else dataset_size // test_dataset_downsize
         self.batch_size = batch_size
         self.train_dataset_size = train_dataset_size if train_dataset_size is not None else dataset_size
         self.test_mode = test_mode

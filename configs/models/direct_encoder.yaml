@@ -1,9 +1,8 @@
-Model: DirectEncoder
-model_params:
-  output_layers: 20
-  hidden_size: 256
-  num_layers: 6
-  num_heads: 8
-  spectrum_len: 301 # (700-400)/1 + 1
-  head_dim: 32
-  num_materials: 2
+name: DirectEncoder
+structure_layers: 20
+hidden_size: 256
+num_layers: 6
+num_heads: 8
+spectrum_len: 301 # (700-400)/1 + 1
+head_dim: 32
+num_materials: 2

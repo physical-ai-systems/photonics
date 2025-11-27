@@ -1,0 +1,7 @@
+name: SimpleEncoder
+structure_layers: 20
+hidden_size: 768  # Options: 512 (small), 768 (base), 1024 (large)
+num_layers: 12    # Options: 8 (small), 12 (base), 24 (large)
+num_heads: 12     # Options: 8 (small), 12 (base), 16 (large)
+spectrum_len: 301 # (700-400)/1 + 1
+num_materials: 2

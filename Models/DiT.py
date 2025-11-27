@@ -1,6 +1,6 @@
 import torch 
 import torch.nn as nn
-from Models.Transformer_block import TransformerBlock
+from Models.Layers.Transformer_block import TransformerBlock
 from einops import rearrange
 import math
 

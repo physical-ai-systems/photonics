@@ -66,18 +66,8 @@ def main():
     if accelerator.is_main_process:
         os.makedirs(checkpoint_path, exist_ok=True)
     
-    dataset_args = args.dataset.copy()
-    dataset_size_test = dataset_args.pop('dataset_size_test', None)
-    
-    train_dataset = PhotonicDataset( **dataset_args, batch_size=args.batch_size, device=device)
-
-    test_dataset_args = dataset_args.copy()
-    if dataset_size_test is not None:
-        test_dataset_args['dataset_size'] = dataset_size_test
-    
-    test_dataset_args['train_dataset_size'] = dataset_args['dataset_size']
-
-    test_dataset = PhotonicDataset( **test_dataset_args, batch_size=args.test_batch_size, test_mode=True, device=device)
+    train_dataset = PhotonicDataset( **args.dataset, batch_size=args.batch_size, device=device)
+    test_dataset = PhotonicDataset( **args.dataset, batch_size=args.test_batch_size, test_mode=True, device=device)
     
 
     train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True, num_workers=0)

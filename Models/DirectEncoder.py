@@ -1,19 +1,19 @@
 import torch
 import torch.nn as nn
-from Models.Transformer_block import TransformerBlock
+from Models.Layers.Transformer_block import TransformerBlock
 
 class DirectEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         
-        self.output_layers = config.get('output_layers', 20) 
+        self.structure_layers = config.get('structure_layers', 20) 
         self.hidden_size = config['hidden_size']
         self.spectrum_len = config['spectrum_len']
         self.num_materials = config.get('num_materials', 2)
         self.transformer_depth = config['num_layers'] 
 
        
-        self.layer_queries = nn.Parameter(torch.randn(1, self.output_layers, self.hidden_size))
+        self.layer_queries = nn.Parameter(torch.randn(1, self.structure_layers, self.hidden_size))
 
         self.spectrum_proj = nn.Sequential(
             nn.Linear(self.spectrum_len, self.hidden_size),
@@ -53,8 +53,8 @@ class DirectEncoder(nn.Module):
         Args:
             spectrum: (Batch_Size, Spectrum_Len) - The 1D Reflectance vector
         Returns:
-            thickness: (Batch_Size, Output_Layers) - Predicted thicknesses
-            material_logits: (Batch_Size, Output_Layers, Num_Materials) - Scores for each material
+            thickness: (Batch_Size, Structure_Layers) - Predicted thicknesses
+            material_logits: (Batch_Size, Structure_Layers, Num_Materials) - Scores for each material
         """
         spectrum = spectrum.float() 
         batch_size = spectrum.shape[0]
