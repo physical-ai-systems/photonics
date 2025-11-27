@@ -1,8 +1,6 @@
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-from scipy.interpolate import CubicSpline
-
 from Methods.TransferMatrixMethod.PhotonicTransferMatrix import PhotonicTransferMatrix
 from Methods.TransferMatrixMethod.Structure              import Structure
 from Methods.TransferMatrixMethod.Layer                  import Layer
@@ -185,8 +183,6 @@ class PhotonicDataset(Dataset):
         """
         batch_size = layer_thickness.shape[0]
         
-        # Expand thickness to match wavelength dimension
-        # layer_thickness: [B, Layers] -> [B, Layers, Wavelengths]
         layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
         
         refractive_indices = torch.empty(batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
@@ -197,7 +193,7 @@ class PhotonicDataset(Dataset):
             num_true = torch.count_nonzero(mat_mask)
             if num_true > 0:
                 mat_n = torch.as_tensor(self.Materials[mat_name].refractive_index[0,...]).unsqueeze(0).repeat(num_true, 1)
-                refractive_indices[mat_mask,...] = mat_n.to(refractive_indices.device) # Ensure device match
+                refractive_indices[mat_mask,...] = mat_n.to(refractive_indices.device) 
         
         air_boundary = self.Materials["Air"]
         substrate = self.Materials["SiO2"]

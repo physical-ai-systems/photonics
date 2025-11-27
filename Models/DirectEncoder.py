@@ -42,9 +42,10 @@ class DirectEncoder(nn.Module):
         nn.init.constant_(self.adaptive_norm_mlp[-1].weight, 0)
         nn.init.constant_(self.adaptive_norm_mlp[-1].bias, 0)
         
-        nn.init.constant_(self.thickness_head.weight, 0)
-        nn.init.constant_(self.thickness_head.bias, 0)
-        nn.init.constant_(self.material_head.weight, 0)
+        nn.init.xavier_uniform_(self.thickness_head.weight)
+        nn.init.constant_(self.thickness_head.bias, 0.5) 
+        
+        nn.init.xavier_uniform_(self.material_head.weight)
         nn.init.constant_(self.material_head.bias, 0)
 
     def forward(self, spectrum):

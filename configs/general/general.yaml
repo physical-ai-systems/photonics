@@ -1,6 +1,6 @@
 general:
   main_path: ./
-  config: direct_encoder_hpc # direct_encoder # Default model config to load
+  config: direct_encoder_hpc
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"

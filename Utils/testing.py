@@ -28,7 +28,9 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
 
     metrics_calculator = Metric(num_outputs=num_outputs)
     metrics_calculator.to(accelerator.device)
-    accumulated_metrics = {}
+    
+    all_preds = []
+    all_targets = []
 
     with torch.no_grad():
         for i, batch in enumerate(test_dataloader):
@@ -44,8 +46,8 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
             pred_thickness = output[0]
             target_thickness = batch['layer_thickness']
             
-            metrics = metrics_calculator.metric(pred_thickness, target_thickness)
-            accumulated_metrics = metrics_calculator.append_to_metrics_dict(metrics, accumulated_metrics)
+            all_preds.append(pred_thickness)
+            all_targets.append(target_thickness)
             
             mae_normalized = torch.mean(torch.abs(pred_thickness - target_thickness))
             mae_nm = mae_normalized * (200 - 20) 
@@ -128,7 +130,10 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                     import traceback
                     traceback.print_exc()
 
-    avg_metrics = metrics_calculator.get_avg_metrics(accumulated_metrics)
+    # Calculate metrics once at the end of the epoch
+    all_preds = torch.cat(all_preds, dim=0)
+    all_targets = torch.cat(all_targets, dim=0)
+    avg_metrics = metrics_calculator.metric(all_preds, all_targets)
 
     if accelerator.is_main_process:
         if tb_logger is not None:
