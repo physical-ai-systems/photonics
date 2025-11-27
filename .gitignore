@@ -1,3 +1,44 @@
+# Experiments and outputs
+outputs/
+exports/
+renders/
+experiments/
+# tensorboard log files
+events.out.*
+
+# Data
+/data
+
+# Misc
+old/
+temp*
+!temporal*
+.nfs*
+external/
+__MACOSX/
+node_modules/
+bash/
+cache/
+package-lock.json
+camera_paths/
+.DS_Store
+._.DS_Store
+*/**/.DS_Store
+*/**/._.DS_Store
+
+#visual studio code directories
+.vscode
+!.vscode/launch.json
+
+# Disbatcher
+
+
+# outputs 
+.html
+.png
+.svg
+.pdf
+.docx
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -161,43 +202,3 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Experiments and outputs
-outputs/
-exports/
-renders/
-# tensorboard log files
-events.out.*
-
-# Data
-/data
-
-# Misc
-old/
-temp*
-!temporal*
-.nfs*
-external/
-__MACOSX/
-node_modules/
-bash/
-cache/
-package-lock.json
-camera_paths/
-.DS_Store
-._.DS_Store
-*/**/.DS_Store
-*/**/._.DS_Store
-
-#visual studio code directories
-.vscode
-!.vscode/launch.json
-
-# Disbatcher
-
-
-# outputs 
-.html
-.png
-.svg
-.pdf
-.docx
