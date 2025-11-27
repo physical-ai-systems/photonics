@@ -66,16 +66,24 @@ def main():
     if accelerator.is_main_process:
         os.makedirs(checkpoint_path, exist_ok=True)
     
-    train_dataset = PhotonicDataset( **args.dataset, batch_size=args.batch_size, device=device)
+    dataset_args = args.dataset.copy()
+    dataset_size_test = dataset_args.pop('dataset_size_test', None)
+    
+    train_dataset = PhotonicDataset( **dataset_args, batch_size=args.batch_size, device=device)
 
-    test_dataset = PhotonicDataset( **args.dataset, batch_size=args.test_batch_size, test_mode=True, device=device)
+    test_dataset_args = dataset_args.copy()
+    if dataset_size_test is not None:
+        test_dataset_args['dataset_size'] = dataset_size_test
+    
+    test_dataset_args['train_dataset_size'] = dataset_args['dataset_size']
+
+    test_dataset = PhotonicDataset( **test_dataset_args, batch_size=args.test_batch_size, test_mode=True, device=device)
     
 
-    # num_workers=0 to avoid multiprocessing issues with CUDA and leverage GPU for data generation in main process
     train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True, num_workers=0)
     test_dataloader  = DataLoader(test_dataset,  batch_size=None, shuffle=False, num_workers=0)
 
-    net, vae, criterion = get_model(config, args, device)
+    net, criterion = get_model(config, args, device)
     optimizer, aux_optimizer = configure_optimizers(net, args)
     lr_scheduler, lr_scheduler_aux = get_schedulers(optimizer, aux_optimizer, args)
     

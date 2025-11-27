@@ -1,6 +1,6 @@
 general:
   main_path: ./
-  config: direct_encoder_hpc # direct_encoder # Default model config to load
+  config: direct_encoder_hpc
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"
@@ -14,7 +14,7 @@ general:
     ranges: [400, 700]
     steps: 0.1  # hpc 0.1
     dataset_size: 10000
-    # dataset_size_test: 1000
+    dataset_size_test: 1000
 train:
   num_workers: 16
   save_checkpoints: true
