@@ -3,49 +3,47 @@ import torch
 import torch.nn as nn
 import numpy as np
 from typing import Dict
-from torchmetrics.regression import CosineSimilarity, ExplainedVariance, MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError, MeanSquaredLogError, PearsonCorrCoef, R2Score, SpearmanCorrCoef, SymmetricMeanAbsolutePercentageError, TweedieDevianceScore, WeightedMeanAbsolutePercentageError
+from torchmetrics.functional import (
+    cosine_similarity,
+    explained_variance,
+    mean_absolute_error,
+    mean_absolute_percentage_error,
+    mean_squared_error,
+    mean_squared_log_error,
+    pearson_corrcoef,
+    r2_score,
+    spearman_corrcoef,
+    symmetric_mean_absolute_percentage_error,
+    tweedie_deviance_score,
+    weighted_mean_absolute_percentage_error
+)
 
 
 class Metric(nn.Module):
     def __init__(self, num_outputs=1):
         super(Metric, self).__init__()
-        self.cs = CosineSimilarity(reduction='mean')
-        self.ev = ExplainedVariance()
-        self.mae = MeanAbsoluteError()
-        self.mape = MeanAbsolutePercentageError()
-        self.mse = MeanSquaredError(squared=True)
-        self.msle = MeanSquaredLogError()
-        self.pcc = PearsonCorrCoef(num_outputs=num_outputs)
-        self.r2s = R2Score()
-        self.scc = SpearmanCorrCoef(num_outputs=num_outputs)
-        self.smape = SymmetricMeanAbsolutePercentageError()
-        self.tds = TweedieDevianceScore()
-        self.wmape = WeightedMeanAbsolutePercentageError()
         
-    def metric(self, output, target): 
-    #     for module in self.children():
-    #         if hasattr(module, 'reset'):
-    #             module.reset()
+    def metric(self, output, target):
 
         with torch.no_grad():
-            cs = self.cs(output, target).item()
-            ev = self.ev(output, target).item()
-            mae = self.mae(output, target).item()
-            mape = self.mape(output, target).item()
-            mse = self.mse(output, target).item()
-            msle = self.msle(output, target).item()
+            cs = cosine_similarity(output, target, reduction='mean').item()
+            ev = explained_variance(output, target).item()
+            mae = mean_absolute_error(output, target).item()
+            mape = mean_absolute_percentage_error(output, target).item()
+            mse = mean_squared_error(output, target, squared=True).item()
+            msle = mean_squared_log_error(output, target).item()
             
-            # pcc_val = self.pcc(output, target)
-            # pcc = pcc_val.mean().item() if pcc_val.numel() > 1 else pcc_val.item()
+            pcc_val = pearson_corrcoef(output, target)
+            pcc = pcc_val.mean().item() if pcc_val.numel() > 1 else pcc_val.item()
             
-            r2s = self.r2s(output, target).item()
+            r2s = r2_score(output, target).item()
             
-            # scc_val = self.scc(output, target)
-            # scc = scc_val.mean().item() if scc_val.numel() > 1 else scc_val.item()
+            scc_val = spearman_corrcoef(output, target)
+            scc = scc_val.mean().item() if scc_val.numel() > 1 else scc_val.item()
 
-            smape = self.smape(output, target).item()
-            tds = self.tds(output, target).item()
-            wmape = self.wmape(output, target).item()
+            smape = symmetric_mean_absolute_percentage_error(output, target).item()
+            tds = tweedie_deviance_score(output, target).item()
+            wmape = weighted_mean_absolute_percentage_error(output, target).item()
 
             metrics = { 
                 'cs': cs,
@@ -54,9 +52,9 @@ class Metric(nn.Module):
                 'mape': mape,
                 'mse': mse,
                 'msle': msle,
-                # 'pcc': pcc,
+                'pcc': pcc,
                 'r2s': r2s,
-                # 'scc': scc,
+                'scc': scc,
                 'smape': smape,
                 'tds': tds,
                 'wmape': wmape
@@ -88,4 +86,3 @@ def write_metrics_to_csv(metrics: Dict, csv_path: str, overwrite: bool=False):
     with open(csv_path, 'a') as f:
         row = [str(metrics.get(col, '')) for col in metrics_col]
         f.write(','.join(row) + '\n')
-        
