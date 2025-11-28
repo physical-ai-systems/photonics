@@ -12,7 +12,8 @@ class SimpleEncoder(nn.Module):
         self.num_materials = config.get('num_materials', 2)
         
         # TiTok-inspired architecture parameters
-        self.num_latent_tokens = int(self.structure_layers ** 1.7)
+        raw_tokens = int(self.structure_layers ** 1.7)
+        self.num_latent_tokens = 2 ** round(torch.log2(torch.tensor(raw_tokens)).item())
         self.token_size = config.get('token_size', 2 + self.num_materials)  # thickness + material logits per layer
         
         # Model dimensions from config
