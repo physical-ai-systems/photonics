@@ -166,10 +166,73 @@ class PhotonicDatasetTMMFast(Dataset):
             theta_0=torch.tensor(0).to(self.device), 
             mode='TE'
         )
-
+        thickness = thickness.values[...,0]  # Remove wavelength dimension for output
+        thickness = (thickness - self.thickness_range[0]) / (self.thickness_range[1] - self.thickness_range[0])  # Normalize thickness to be between 0 and 1
         return {
             'R': R_calc,
             'T': T_calc, 
             'material_choice': material_choice,           
             'layer_thickness': thickness
         }
+
+    def compute_spectrum(self, layer_thickness, material_choice):
+        """
+        Compute the spectrum from thickness and material indices.
+        
+        Parameters:
+        -----------
+        layer_thickness : torch.Tensor
+            Shape (Batch, Num_Layers). Thickness in nanometers.
+        material_choice : torch.Tensor
+            Shape (Batch, Num_Layers). Material indices.
+            
+        Returns:
+        --------
+        R, T : torch.Tensor
+            Reflectance and Transmission spectra.
+        """
+        batch_size = layer_thickness.shape[0]
+        
+        # Create boundary layers using MultiLayer
+        boundary_refractive_indices = torch.cat([
+            torch.as_tensor(self.Materials["Air"].refractive_index),
+            torch.as_tensor(self.Materials["SiO2"].refractive_index)
+        ], dim=1) 
+        
+        boundary_layers = MultiLayer(material=Material(self.wavelength, name="Boundary_Material", refractive_index=boundary_refractive_indices), thickness=None)
+
+        # Expand thickness to match wavelength dimension
+        layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
+        
+        refractive_indices = torch.empty(batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
+
+        material_list = list(self.Materials.keys())
+        for i, mat_name in enumerate(material_list):
+            mat_mask = (material_choice == i)
+            num_true = torch.count_nonzero(mat_mask)
+            if num_true > 0:
+                mat_n = torch.as_tensor(self.Materials[mat_name].refractive_index[0,...]).repeat(num_true, 1)
+                refractive_indices[mat_mask,...] = mat_n
+        
+        thickness = PhysicalQuantity(
+            values=layer_thickness_exp,
+            units=self.thickness_units,
+            unit_prefix=self.thickness_unit_prefix,
+            name=f"Layer_Thickness"
+        )
+
+        material = Material(
+            self.wavelength,
+            name=f"Material",
+            refractive_index=refractive_indices
+        )
+        layers = MultiLayer(material=material, thickness=thickness)
+        
+        R_calc, T_calc = self.method.Reflectance_from_layers(
+            layers, 
+            boundary_layers,
+            theta_0=torch.tensor(0).to(self.device), 
+            mode='TE'
+        )
+        
+        return R_calc, T_calc

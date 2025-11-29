@@ -5,7 +5,8 @@ class StructureLoss(nn.Module):
     def __init__(self, lambda_thickness=1.0, lambda_material=1.0):
         super().__init__()
         self.mse = nn.MSELoss()
-        self.ce = nn.CrossEntropyLoss()
+        # self.ce = nn.CrossEntropyLoss()
+        self.material_loss = nn.BCEWithLogitsLoss()
         self.lambda_thickness = lambda_thickness
         self.lambda_material = lambda_material
 
@@ -22,10 +23,13 @@ class StructureLoss(nn.Module):
         # Thickness Loss (MSE)
         loss_thickness = self.mse(thickness_pred, thickness_target)
 
-        # Material Loss (Cross Entropy)
+        # Material Loss (BCE with Logits)
         # material_logits: (B, N, C), material_target: (B, N)
-        # Permute logits to (B, C, N) for CrossEntropyLoss
-        loss_material = self.ce(material_logits.permute(0, 2, 1), material_target)
+        loss_material = self.material_loss(material_logits, material_target.float())
+        # # Material Loss (Cross Entropy)
+        # # material_logits: (B, N, C), material_target: (B, N)
+        # # Permute logits to (B, C, N) for CrossEntropyLoss
+        # loss_material = self.ce(material_logits.permute(0, 2, 1), material_target)
 
         total_loss = (self.lambda_thickness * loss_thickness) + (self.lambda_material * loss_material)
 
