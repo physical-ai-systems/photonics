@@ -17,18 +17,11 @@ def get_model(config, args, device):
         raise ValueError(f"Model {config.name} not found or not supported in this cleanup.")
     return net, vae, loss
 
-def get_schedulers(optimizer, aux_optimizer, args):
+def get_schedulers(optimizer, args):
     """
     Returns learning rate schedulers for the main and auxiliary optimizers.
     """
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=10,
-    )
-    
-    lr_scheduler_aux = None
-    if aux_optimizer is not None:
-        lr_scheduler_aux = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            aux_optimizer, mode='min', factor=0.5, patience=10
-        )
-        
-    return lr_scheduler, lr_scheduler_aux
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=args.epochs, eta_min=1e-6
+    ) 
+    return lr_scheduler

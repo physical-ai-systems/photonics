@@ -2,38 +2,15 @@ import torch.optim as optim
 
 
 def configure_optimizers(net, args):
-    """Separate parameters for the main optimizer and the auxiliary optimizer.
-    Return two optimizers"""
+    """Configure and return the main optimizer only."""
 
     parameters = [
-        p for n, p in net.named_parameters() if not n.endswith(".quantiles")
+        p for n, p in net.named_parameters() if p.requires_grad
     ]
-    aux_parameters = [
-        p for n, p in net.named_parameters() if n.endswith(".quantiles")
-    ]
-
-    params_dict = dict(net.named_parameters())
-    inter_params = set(parameters) & set(aux_parameters)
-    union_params = set(parameters) | set(aux_parameters)
-
-    assert len(inter_params) == 0
-    assert len(union_params) - len(params_dict.keys()) == 0
-
     optimizer = optim.AdamW(
-        (p for p in parameters if p.requires_grad),
+        parameters,
         lr=float(args.learning_rate),
         betas=(0.9, 0.999),
         weight_decay=1e-4,
     )
-    
-    if len(aux_parameters) > 0:
-        aux_optimizer = optim.AdamW(
-            (p for p in aux_parameters if p.requires_grad),
-            lr=float(args.aux_learning_rate),
-            betas=(0.9, 0.999),
-            weight_decay=1e-4,
-        )
-    else:
-        aux_optimizer = None
-        
-    return optimizer, aux_optimizer
+    return optimizer

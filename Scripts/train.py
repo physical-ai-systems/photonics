@@ -19,6 +19,7 @@ from Utils.config import model_config
 from Models.get_model import get_model, get_schedulers
 from Utils.Utils import setup_environment
 from Dataset.Dataset import PhotonicDataset
+from Dataset.TMM_Fast import PhotonicDatasetTMMFast
 
 
 
@@ -58,6 +59,7 @@ def main():
 
     if accelerator.is_main_process:
         logger_train.info(f"Using device: {accelerator.device}")
+    device = 'cpu'
 
     tb_logger = SummaryWriter(log_dir=experiment_path) if accelerator.is_main_process else None
 
@@ -66,20 +68,20 @@ def main():
     if accelerator.is_main_process:
         os.makedirs(checkpoint_path, exist_ok=True)
     
-    train_dataset = PhotonicDataset( **args.dataset, batch_size=args.batch_size, device=device)
-    test_dataset = PhotonicDataset( **args.dataset, batch_size=args.test_batch_size, test_mode=True, device=device)
+    train_dataset = PhotonicDatasetTMMFast( **args.dataset, batch_size=args.batch_size, device=device)
+    test_dataset = PhotonicDatasetTMMFast( **args.dataset, batch_size=args.test_batch_size, test_mode=True, device=device)
     
 
     train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True, num_workers=0)
     test_dataloader  = DataLoader(test_dataset,  batch_size=None, shuffle=False, num_workers=0)
 
-    net, criterion = get_model(config, args, device)
-    optimizer, aux_optimizer = configure_optimizers(net, args)
-    lr_scheduler, lr_scheduler_aux = get_schedulers(optimizer, aux_optimizer, args)
+    net, _,  criterion = get_model(config, args, device)
+    optimizer = configure_optimizers(net, args)
+    lr_scheduler = get_schedulers(optimizer, args)
     
 
-    net, criterion, optimizer, aux_optimizer, train_dataloader, test_dataloader, lr_scheduler, lr_scheduler_aux = accelerator.prepare(
-        net, criterion, optimizer, aux_optimizer, train_dataloader, test_dataloader, lr_scheduler, lr_scheduler_aux
+    net, criterion, optimizer, train_dataloader, test_dataloader, lr_scheduler = accelerator.prepare(
+        net, criterion, optimizer, train_dataloader, test_dataloader, lr_scheduler
     )
 
 
@@ -125,13 +127,9 @@ def main():
         loss = test_one_epoch(epoch, test_dataloader, net, criterion, logger_val, tb_logger, accelerator)
 
         lr_scheduler.step(epoch)
-
-        if lr_scheduler_aux is not None:
-            lr_scheduler_aux.step(epoch)
             
         if accelerator.is_main_process:
-            aux_lr = lr_scheduler_aux.get_last_lr()[0] if lr_scheduler_aux else 0.0
-            logger_train.info(f"Epoch {epoch+1}/{args.epochs} learning rate: {lr_scheduler.get_last_lr()[0]:.6f}, aux learning rate: {aux_lr:.6f}")
+            logger_train.info(f"Epoch {epoch+1}/{args.epochs} learning rate: {lr_scheduler.get_last_lr()[0]:.6f}")
             # Save checkpoints
             is_best = loss < best_loss
             best_loss = min(loss, best_loss)

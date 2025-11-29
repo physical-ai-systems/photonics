@@ -38,4 +38,24 @@ class Layer(nn.Module):
         return self.material.device
     
 
+    
+class MultiLayer(nn.Module):
+    def __init__(self, material, thickness=None, *args, **kwargs):
+        super().__init__()
+        self.material   = material
+        self.thickness  = thickness 
+
+    def __repr__(self):
+        return "Layer: {} with thickness: {}".format(self.material.name, self.thickness)
+
+    def to(self, device):
+        self.material.to(device)
+        self.thickness = self.thickness.to(device)
+        return self
+    
+    @property
+    def device(self):
+        return self.material.device
+    
+
      

@@ -22,6 +22,9 @@ class Structure(nn.Module):
             self.layers = self.repeat_layers(layers, layers_repeat)    
         elif method == 'multi_layer':
             self.layers = layers
+        elif method == 'vectorized_layers':
+            self.layers = layers
+
         else:
             raise NotImplementedError("Method {} is not implemented".format(method))           
         
@@ -36,12 +39,6 @@ class Structure(nn.Module):
         coordinate = 0
         for i, layer in enumerate(self.layers):
             if layer.thickness is not None:
-                # Debug print for device mismatch
-                # th_dev = layer.thickness.device if isinstance(layer.thickness, torch.Tensor) else "cpu"
-                # coord_dev = coordinate.device if isinstance(coordinate, torch.Tensor) else "int"
-                # print(f"Layer {i} ({layer.material.name}): Coord dev={coord_dev}, Thick dev={th_dev}")
-                
-                # Ensure coordinate is on the same device as layer.thickness if it's 0 (int)
                 if isinstance(coordinate, int) and coordinate == 0 and isinstance(layer.thickness, torch.Tensor):
                     coordinate = torch.tensor(0.0, device=layer.thickness.device, dtype=layer.thickness.dtype)
 
@@ -83,3 +80,20 @@ class Structure(nn.Module):
     @property
     def device(self):
         return self.layers[0].device
+    
+
+
+class VectorizedStructure(nn.Module):
+    def __init__(self,
+                 layers,
+                 name=None,
+                 *args, **kwargs):
+        super().__init__()
+        self.name    = name
+        self.layers  = layers
+    def __repr__(self):
+        return "Vectorized Structure name: {}, Layers: {}".format(self.name, self.layers)
+    def __str__(self):
+        return "Vectorized Structure name: {}, Layers: {}".format(self.name, self.layers)
+    def to(self, device):
+        self.layers = self.layers.to(device)
