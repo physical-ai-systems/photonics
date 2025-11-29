@@ -41,6 +41,8 @@ def main():
         kwargs_handlers=[ddp_kwargs],
     )
     device = accelerator.device
+    print(f"Using device: {device}")
+    # device = 'cpu'
 
     experiment_path = os.path.join(args.main_path, 'experiments', args.experiment)
     
@@ -59,7 +61,6 @@ def main():
 
     if accelerator.is_main_process:
         logger_train.info(f"Using device: {accelerator.device}")
-    device = 'cpu'
 
     tb_logger = SummaryWriter(log_dir=experiment_path) if accelerator.is_main_process else None
 

@@ -1,9 +1,12 @@
 import argparse
 import yaml
+import os
 
 
 def get_args(config_stage = "train"):
-    with open("configs/general/general.yaml", "r") as f:
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(parent_dir, "configs/general/general.yaml"), "r") as f:
         config = yaml.safe_load(f)
         general_config = config.get("general", {})
         config = config.get(config_stage, {})

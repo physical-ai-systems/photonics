@@ -4,16 +4,16 @@ general:
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"
-  batch_size: 10
-  test_batch_size: 10
+  batch_size: 150
+  test_batch_size: 150
   losses: 
-    lambda_thickness: 10.0
+    lambda_thickness: 1.0
     lambda_material: 1.0
   dataset:
     num_layers: 16
     ranges: [400, 700]
     steps: 1  # hpc 0.1
-    dataset_size: 1000
+    dataset_size: 100000
     # dataset_size_test: 1000
 train:
   num_workers: 16

@@ -12,3 +12,5 @@ tensorboard
 torchmetrics
 einops
 plotly
+kaleido
+matplotlib
