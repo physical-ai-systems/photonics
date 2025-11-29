@@ -5,10 +5,11 @@ class StructureLoss(nn.Module):
     def __init__(self, lambda_thickness=1.0, lambda_material=1.0):
         super().__init__()
         self.mse = nn.MSELoss()
-        # self.ce = nn.CrossEntropyLoss()
         self.material_loss = nn.BCEWithLogitsLoss()
         self.lambda_thickness = lambda_thickness
         self.lambda_material = lambda_material
+        # Initialize log variance parameters (learnable)
+        self.log_vars = nn.Parameter(torch.zeros(2))
 
     def forward(self, output, target):
         """
@@ -26,12 +27,10 @@ class StructureLoss(nn.Module):
         # Material Loss (BCE with Logits)
         # material_logits: (B, N, C), material_target: (B, N)
         loss_material = self.material_loss(material_logits, material_target.float())
-        # # Material Loss (Cross Entropy)
-        # # material_logits: (B, N, C), material_target: (B, N)
-        # # Permute logits to (B, C, N) for CrossEntropyLoss
-        # loss_material = self.ce(material_logits.permute(0, 2, 1), material_target)
 
-        total_loss = (self.lambda_thickness * loss_thickness) + (self.lambda_material * loss_material)
+        # Weighting based on uncertainty
+        total_loss = self.lambda_thickness * (loss_thickness * torch.exp(-self.log_vars[0]) + self.log_vars[0]) + \
+               self.lambda_material * (loss_material * torch.exp(-self.log_vars[1]) + self.log_vars[1])
 
         return {
             "loss": total_loss,

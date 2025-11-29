@@ -13,7 +13,7 @@ general:
     num_layers: 16
     ranges: [400, 700]
     steps: 1  # hpc 0.1
-    dataset_size: 100000
+    dataset_size: 10000
     # dataset_size_test: 1000
 train:
   num_workers: 16

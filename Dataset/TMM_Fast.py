@@ -191,6 +191,11 @@ class PhotonicDatasetTMMFast(Dataset):
         R, T : torch.Tensor
             Reflectance and Transmission spectra.
         """
+        # Check if the material_choice is binary
+        if not torch.all((material_choice == 0) | (material_choice == 1)):
+            # convert to binary by thresholding at 0.5
+            material_choice = (material_choice > 0.5).long()
+            
         batch_size = layer_thickness.shape[0]
         
         # Create boundary layers using MultiLayer
