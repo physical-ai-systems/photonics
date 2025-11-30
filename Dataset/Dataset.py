@@ -93,7 +93,6 @@ class PhotonicDataset(Dataset):
             'wavelength': torch.Tensor of shape (N,) - wavelength values in nm
             'R': torch.Tensor of shape (N,) - interpolated reflectance values
             'T': torch.Tensor of shape (N,) - interpolated transmission values
-            'R_fixed': torch.Tensor of shape (10,) - reflectance at fixed wavelengths
             'material_choice': int - 0 for Air, 1 for Silicon
             'layer_thickness': float - thickness of the middle layer in nm
         """
