@@ -44,7 +44,7 @@ class PhotonicDatasetTMMFast(Dataset):
                  batch_size=10,
                  dataset_size=10**6,
                  train_dataset_size=None,
-                 test_dataset_downsize=100,
+                 test_dataset_downsize=1000,
                  test_mode=False,
                  device=None
                  ):
@@ -119,7 +119,7 @@ class PhotonicDatasetTMMFast(Dataset):
             'layer_thickness': float - thickness of the middle layer in nm
         """
         
-        self.set_seed_for_index(idx)
+        # self.set_seed_for_index(idx)
 
         # Create boundary layers using MultiLayer
         boundary_refractive_indices = torch.cat([

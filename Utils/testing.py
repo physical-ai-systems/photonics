@@ -126,9 +126,12 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                     traceback.print_exc()
 
     # Calculate metrics once at the end of the epoch
-    all_preds = torch.cat(all_preds, dim=0)
-    all_targets = torch.cat(all_targets, dim=0)
-    avg_metrics = metrics_calculator.metric(all_preds, all_targets)
+    if len(all_preds) > 0:
+        all_preds = torch.cat(all_preds, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+        avg_metrics = metrics_calculator.metric(all_preds, all_targets)
+    else:
+        avg_metrics = {}
 
     if accelerator.is_main_process:
         if tb_logger is not None:

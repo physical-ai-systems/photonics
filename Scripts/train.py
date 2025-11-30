@@ -40,6 +40,7 @@ def main():
         gradient_accumulation_steps=1,
         kwargs_handlers=[ddp_kwargs],
     )
+    accelerator.even_batches = False
     device = accelerator.device
     print(f"Using device: {device}")
     # device = 'cpu'
@@ -73,8 +74,8 @@ def main():
     test_dataset = PhotonicDatasetTMMFast( **args.dataset, batch_size=args.test_batch_size, test_mode=True, device=device)
     
 
-    train_dataloader = DataLoader(train_dataset, batch_size=None, shuffle=True, num_workers=0)
-    test_dataloader  = DataLoader(test_dataset,  batch_size=None, shuffle=False, num_workers=0)
+    train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, collate_fn=lambda x: x[0])
+    test_dataloader  = DataLoader(test_dataset,  batch_size=1, shuffle=False, num_workers=0, collate_fn=lambda x: x[0])
 
     net, _,  criterion = get_model(config, args, device)
     optimizer = configure_optimizers(net, args)
@@ -125,7 +126,12 @@ def main():
             current_step,
             accelerator,
         )
-        loss = test_one_epoch(epoch, test_dataloader, net, criterion, logger_val, tb_logger, accelerator)
+
+        try:
+            loss = test_one_epoch(epoch, test_dataloader, net, criterion, logger_val, tb_logger, accelerator)
+        except Exception as e:
+            logger_val.error(f"Validation failed at epoch {epoch}: {e}")
+            loss = float('inf')
 
         lr_scheduler.step(epoch)
             
