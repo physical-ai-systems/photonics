@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from Models.get_model import get_model
 from Utils.config import model_config
+from Dataset.TMM_Fast import PhotonicDatasetTMMFast
 
 class InferenceModel:
     def __init__(self, experiment_name='test_experiment', config_name='simple_encoder'):
@@ -31,10 +32,19 @@ class InferenceModel:
         
         # Initialize Accelerator for loading
         self.accelerator = Accelerator()
+        self.device = self.accelerator.device
         self.net = self.accelerator.prepare(self.net)
         
         # Load checkpoint
-        checkpoint_path = os.path.join(self.repo_path, 'experiments', experiment_name, 'checkpoints', 'checkpoint_best_loss')
+        # Check if experiment_name is a direct path to a checkpoint
+        direct_checkpoint_path = os.path.join(self.repo_path, 'experiments', experiment_name)
+        default_checkpoint_path = os.path.join(self.repo_path, 'experiments', experiment_name, 'checkpoints', 'checkpoint_best_loss')
+        
+        if os.path.exists(os.path.join(direct_checkpoint_path, 'pytorch_model.bin')):
+            checkpoint_path = direct_checkpoint_path
+        else:
+            checkpoint_path = default_checkpoint_path
+
         if os.path.exists(checkpoint_path):
             try:
                 self.accelerator.load_state(checkpoint_path)
@@ -53,7 +63,15 @@ class InferenceModel:
         # Material mapping (from TMM_Fast.py)
         self.materials = ["SiO2", "Air"]
         self.refractive_indices = {"SiO2": 1.4618, "Air": 1.0}
-        self.colors = {"SiO2": "#A0A0A0", "Air": "#E0E0E0"}
+        self.colors = {"SiO2": "#4839B7", "Air": "#E0E0E0"}
+
+        # Initialize TMM for spectrum calculation
+        self.tmm = PhotonicDatasetTMMFast(
+            num_layers=self.config.structure_layers,
+            ranges=(400, 700),
+            steps=1,
+            device=('cuda' if torch.cuda.is_available() else 'cpu')
+        )
 
     def predict(self, input_lamda, input_r):
         # Interpolate input spectrum to target wavelengths
@@ -78,18 +96,25 @@ class InferenceModel:
         min_th = 20
         max_th = 200
         
-        thickness = thickness.cpu().numpy()[0]
-        thickness = thickness * (max_th - min_th) + min_th
+        # Keep as tensor for TMM
+        thickness_nm = thickness * (max_th - min_th) + min_th
         
-        material_logits = material_logits.cpu().numpy()[0]
-        # Binary classification: > 0 is class 1, <= 0 is class 0
-        material_indices = (material_logits > 0).astype(int)
+        # Material indices
+        material_indices = (material_logits > 0).long()
+        
+        # Calculate produced spectrum
+        R_calc, T_calc = self.tmm.compute_spectrum(thickness_nm.cpu(), material_indices.cpu())
+        produced_spectrum = R_calc.cpu().numpy()[0]
+
+        # Convert to numpy for layers list
+        thickness_np = thickness_nm.cpu().numpy()[0]
+        material_indices_np = material_indices.cpu().numpy()[0]
         
         layers = []
         current_z = 0.0
-        for i in range(len(thickness)):
-            th = float(thickness[i])
-            mat_idx = material_indices[i]
+        for i in range(len(thickness_np)):
+            th = float(thickness_np[i])
+            mat_idx = material_indices_np[i]
             mat_name = self.materials[mat_idx]
             
             layer = {
@@ -109,4 +134,10 @@ class InferenceModel:
             layers.append(layer)
             current_z += th
             
-        return layers
+        return {
+            "layers": layers,
+            "produced_spectrum": {
+                "lamda": self.target_wavelengths.tolist(),
+                "r": produced_spectrum.tolist()
+            }
+        }
