@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 import math
 import random
+from inference import InferenceModel
 
 app = FastAPI()
 
@@ -14,6 +15,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize model
+try:
+    model = InferenceModel()
+    print("Model loaded successfully")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    model = None
 
 class SimulationInput(BaseModel):
     lamda: List[float]
@@ -32,36 +41,15 @@ def calculate_simulation(data: SimulationInput):
         if not (0 <= val <= 1):
             raise HTTPException(status_code=400, detail="R values must be between 0 and 1")
     
-    unsorted_layers = []
-    
-    for i, (lam, r_val) in enumerate(zip(data.lamda, data.r)):
-        thickness = round(random.uniform(0.5, 2.0), 2)
-        random_color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-        
-        layer = {
-            "name": f"Meta Layer {i+1}",
-            "lamda": lam,      
-            "r_val": r_val,
-            "color": random_color,
-            "thickness": thickness,
-            "val": round(random.random(), 3),
-            "ref_index": round(random.uniform(1.4, 3.5), 3),
-            "impedance": round(random.uniform(300, 400), 2)
-        }
-        unsorted_layers.append(layer)
+    if model is None:
+         raise HTTPException(status_code=500, detail="Model not loaded")
 
+    try:
+        final_data = model.predict(data.lamda, data.r)
+        return {"data": final_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
-    sorted_layers = sorted(unsorted_layers, key=lambda x: x['lamda'])
-    current_z_position = 0.0
-    final_data = []
-
-    for layer in sorted_layers:
-        layer['start_z'] = current_z_position
-        final_data.append(layer)
-        
-        current_z_position += layer['thickness']
-
-    return {"data": final_data}
 
 if __name__ == "__main__":
     import uvicorn
