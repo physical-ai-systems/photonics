@@ -163,7 +163,7 @@ class PhotonicDatasetTMMFast(Dataset):
         R_calc, T_calc = self.method.Reflectance_from_layers(
             layers, 
             boundary_layers,
-            theta_0=torch.tensor(0).to(self.device), 
+            theta_0=torch.tensor(0.0).to(self.device), 
             mode='TE'
         )
         thickness = thickness.values[...,0]  # Remove wavelength dimension for output
@@ -236,7 +236,7 @@ class PhotonicDatasetTMMFast(Dataset):
         R_calc, T_calc = self.method.Reflectance_from_layers(
             layers, 
             boundary_layers,
-            theta_0=torch.tensor(0).to(self.device), 
+            theta_0=torch.tensor(0.0).to(self.device), 
             mode='TE'
         )
         
