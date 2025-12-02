@@ -69,9 +69,6 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                     
                     # Check if material_preds is refractive index (4D) or class indices
                     if material_preds.ndim == 4:
-                         # TODO: Implement compute_spectrum for direct refractive indices
-                         # For now, skip reconstruction or assume dataset can handle it if updated
-                         # Attempting to call specialized method if exists or skip
                          if hasattr(dataset, 'compute_spectrum_from_refractive_indices'):
                              R_pred, _ = dataset.compute_spectrum_from_refractive_indices(pred_thickness_denorm, material_preds)
                          else:
@@ -89,8 +86,6 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                         target_spec = spectrum[0]
                         pred_spec = R_pred[0]
                         
-                        # Determine save directory (infer from logger file handler or use default)
-                        # Assuming logger_val has a file handler, getting its directory
                         save_dir = None
                         for handler in logger_val.handlers:
                             if hasattr(handler, 'baseFilename'):
@@ -112,13 +107,6 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                         )
                         
                         if tb_logger is not None:
-                             # Convert plotly fig to image for tensorboard if supported, 
-                             # or just log it if tb_logger supports figures.
-                             # SummaryWriter.add_figure expects matplotlib figure.
-                             # Plotly to image conversion might require kaleido/orca.
-                             # For safety/simplicity, we might skip direct TB figure logging if dependencies are tricky
-                             # but the user asked for "logged".
-                             # Alternative: Log the saved image.
                              import matplotlib.pyplot as plt
                              import io
                              from PIL import Image
