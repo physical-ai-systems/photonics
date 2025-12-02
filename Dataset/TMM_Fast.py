@@ -168,12 +168,20 @@ class PhotonicDatasetTMMFast(Dataset):
         )
         thickness = thickness.values[...,0]  # Remove wavelength dimension for output
         thickness = (thickness - self.thickness_range[0]) / (self.thickness_range[1] - self.thickness_range[0])  # Normalize thickness to be between 0 and 1
-        return {
-            'R': R_calc,
-            'T': T_calc, 
-            'material_choice': material_choice,           
-            'layer_thickness': thickness
-        }
+                                                                                                            
+        # Prepare refractive indices (n, k)                                                                 
+        # Current 'refractive_indices' is (B, L, W) - Real part                                             
+        n_part = refractive_indices.float()                                                                 
+        k_part = torch.zeros_like(n_part) # Assuming k=0 for now                                            
+        refractive_indices_complex = torch.stack([n_part, k_part], dim=-1) # (B, L, W, 2)                   
+
+        return {                                                                                            
+            'R': R_calc,                                                                                    
+            'T': T_calc,                                                                                    
+            'material_choice': material_choice,                                                             
+            'layer_thickness': thickness,                                                                   
+            'refractive_indices': refractive_indices_complex     
+    }
 
     def compute_spectrum(self, layer_thickness, material_choice):
         """

@@ -17,9 +17,8 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
     accelerator.wait_for_everyone()
     model.eval()
 
-    loss_meter             = AverageMeter()
-    loss_thickness_meter   = AverageMeter()
-    loss_material_meter    = AverageMeter()
+    loss_meter = AverageMeter()
+    loss_meters = {}
     mae_thickness_nm_meter = AverageMeter() 
 
     unwrapped_model = get_unwrapped_model(model)
@@ -39,8 +38,13 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
             loss_dict = criterion(output, batch)
 
             loss_meter.update(loss_dict["loss"])
-            loss_thickness_meter.update(loss_dict["loss_thickness"])
-            loss_material_meter.update(loss_dict["loss_material"])
+            
+            # Dynamic loss metering
+            for k, v in loss_dict.items():
+                if k.startswith('loss_') and isinstance(v, torch.Tensor):
+                    if k not in loss_meters:
+                        loss_meters[k] = AverageMeter()
+                    loss_meters[k].update(v)
             
             pred_thickness = output[0]
             target_thickness = batch['layer_thickness']
@@ -63,62 +67,73 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                     min_th, max_th = dataset.thickness_range
                     pred_thickness_denorm = pred_thickness * (max_th - min_th) + min_th
                     
-                    # Reconstruct spectrum
-                    R_pred, _ = dataset.compute_spectrum(pred_thickness_denorm, material_preds)
+                    # Check if material_preds is refractive index (4D) or class indices
+                    if material_preds.ndim == 4:
+                         # TODO: Implement compute_spectrum for direct refractive indices
+                         # For now, skip reconstruction or assume dataset can handle it if updated
+                         # Attempting to call specialized method if exists or skip
+                         if hasattr(dataset, 'compute_spectrum_from_refractive_indices'):
+                             R_pred, _ = dataset.compute_spectrum_from_refractive_indices(pred_thickness_denorm, material_preds)
+                         else:
+                             R_pred = None # Skip
+                    else:
+                        # Reconstruct spectrum
+                        R_pred, _ = dataset.compute_spectrum(pred_thickness_denorm, material_preds)
                     
-                    # Get data for plotting (first sample)
-                    wavelength = dataset.wavelength.values.squeeze()
-                    if wavelength.ndim > 1: # If broadcasted, take first row
-                        wavelength = wavelength[0]
+                    if R_pred is not None:
+                        # Get data for plotting (first sample)
+                        wavelength = dataset.wavelength.values.squeeze()
+                        if wavelength.ndim > 1: # If broadcasted, take first row
+                            wavelength = wavelength[0]
+                            
+                        target_spec = spectrum[0]
+                        pred_spec = R_pred[0]
                         
-                    target_spec = spectrum[0]
-                    pred_spec = R_pred[0]
-                    
-                    # Determine save directory (infer from logger file handler or use default)
-                    # Assuming logger_val has a file handler, getting its directory
-                    save_dir = None
-                    for handler in logger_val.handlers:
-                        if hasattr(handler, 'baseFilename'):
-                            save_dir = os.path.dirname(handler.baseFilename)
-                            break
-                    if save_dir is None:
-                        save_dir = "experiments/default/plots" # Fallback
-                    
-                    save_dir = os.path.join(save_dir, "plots")
-                    os.makedirs(save_dir, exist_ok=True)
-                    
-                    fig = plot_spectrum_comparison(
-                        wavelength=wavelength,
-                        target_spectrum=target_spec,
-                        pred_spectrum=pred_spec,
-                        title=f"Epoch {epoch} - Spectrum Comparison",
-                        save_dir=save_dir,
-                        save_name=f"spectrum_epoch_{epoch}"
-                    )
-                    
-                    if tb_logger is not None:
-                         # Convert plotly fig to image for tensorboard if supported, 
-                         # or just log it if tb_logger supports figures.
-                         # SummaryWriter.add_figure expects matplotlib figure.
-                         # Plotly to image conversion might require kaleido/orca.
-                         # For safety/simplicity, we might skip direct TB figure logging if dependencies are tricky
-                         # but the user asked for "logged".
-                         # Alternative: Log the saved image.
-                         import matplotlib.pyplot as plt
-                         import io
-                         from PIL import Image
-                         
-                         # Create a matplotlib version for TensorBoard to ensure compatibility
-                         plt.figure(figsize=(10, 6))
-                         plt.plot(wavelength.cpu().numpy(), target_spec.cpu().numpy(), 'k-', label='Target')
-                         plt.plot(wavelength.cpu().numpy(), pred_spec.cpu().numpy(), 'r--', label='Prediction')
-                         plt.title(f"Epoch {epoch} - Spectrum Comparison")
-                         plt.xlabel("Wavelength (nm)")
-                         plt.ylabel("Reflectance")
-                         plt.legend()
-                         plt.grid(True)
-                         tb_logger.add_figure('val/spectrum_comparison', plt.gcf(), epoch)
-                         plt.close()
+                        # Determine save directory (infer from logger file handler or use default)
+                        # Assuming logger_val has a file handler, getting its directory
+                        save_dir = None
+                        for handler in logger_val.handlers:
+                            if hasattr(handler, 'baseFilename'):
+                                save_dir = os.path.dirname(handler.baseFilename)
+                                break
+                        if save_dir is None:
+                            save_dir = "experiments/default/plots" # Fallback
+                        
+                        save_dir = os.path.join(save_dir, "plots")
+                        os.makedirs(save_dir, exist_ok=True)
+                        
+                        fig = plot_spectrum_comparison(
+                            wavelength=wavelength,
+                            target_spectrum=target_spec,
+                            pred_spectrum=pred_spec,
+                            title=f"Epoch {epoch} - Spectrum Comparison",
+                            save_dir=save_dir,
+                            save_name=f"spectrum_epoch_{epoch}"
+                        )
+                        
+                        if tb_logger is not None:
+                             # Convert plotly fig to image for tensorboard if supported, 
+                             # or just log it if tb_logger supports figures.
+                             # SummaryWriter.add_figure expects matplotlib figure.
+                             # Plotly to image conversion might require kaleido/orca.
+                             # For safety/simplicity, we might skip direct TB figure logging if dependencies are tricky
+                             # but the user asked for "logged".
+                             # Alternative: Log the saved image.
+                             import matplotlib.pyplot as plt
+                             import io
+                             from PIL import Image
+                             
+                             # Create a matplotlib version for TensorBoard to ensure compatibility
+                             plt.figure(figsize=(10, 6))
+                             plt.plot(wavelength.cpu().numpy(), target_spec.cpu().numpy(), 'k-', label='Target')
+                             plt.plot(wavelength.cpu().numpy(), pred_spec.cpu().numpy(), 'r--', label='Prediction')
+                             plt.title(f"Epoch {epoch} - Spectrum Comparison")
+                             plt.xlabel("Wavelength (nm)")
+                             plt.ylabel("Reflectance")
+                             plt.legend()
+                             plt.grid(True)
+                             tb_logger.add_figure('val/spectrum_comparison', plt.gcf(), epoch)
+                             plt.close()
 
                 except Exception as e:
                     logger_val.error(f"Failed to plot spectrum: {e}")
@@ -136,21 +151,20 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
     if accelerator.is_main_process:
         if tb_logger is not None:
             tb_logger.add_scalar('[val]: loss', loss_meter.avg, epoch + 1)
-            tb_logger.add_scalar('[val]: loss_thickness', loss_thickness_meter.avg, epoch + 1)
-            tb_logger.add_scalar('[val]: loss_material', loss_material_meter.avg, epoch + 1)
             tb_logger.add_scalar('[val]: mae_thickness_nm', mae_thickness_nm_meter.avg, epoch + 1)
-            # tb_logger.add_scalar('[val]: acc_material', acc_material_meter.avg, epoch + 1)
+            
+            for k, meter in loss_meters.items():
+                tb_logger.add_scalar(f'[val]: {k}', meter.avg, epoch + 1)
 
             for key, value in avg_metrics.items():
                 tb_logger.add_scalar(f'[val]: {key}', value, epoch + 1)
-
-        logger_val.info(
-            f"Test epoch {epoch}: "
-            f"Loss: {loss_meter.avg:.4f} | "
-            f"Thick: {loss_thickness_meter.avg:.4f} | "
-            f"Mat: {loss_material_meter.avg:.4f} | "
-            f"MAE(nm): {mae_thickness_nm_meter.avg:.2f}"
-        )
+        
+        loss_str_parts = [f"Loss: {loss_meter.avg:.4f}"]
+        for k, meter in loss_meters.items():
+            loss_str_parts.append(f"{k.replace('loss_', '')}: {meter.avg:.4f}")
+        loss_str_parts.append(f"MAE(nm): {mae_thickness_nm_meter.avg:.2f}")
+        
+        logger_val.info(f"Test epoch {epoch}: " + " | ".join(loss_str_parts))
         
         metrics_str = " | ".join([f"{k}: {v:.4f}" for k, v in avg_metrics.items()])
         logger_val.info(f"Detailed Metrics: {metrics_str}")

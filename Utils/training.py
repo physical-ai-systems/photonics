@@ -1,3 +1,5 @@
+import torch
+
 def get_unwrapped_model(model):
     """Get the unwrapped model from a potentially wrapped model (e.g., DataParallel, DistributedDataParallel)."""
     if hasattr(model, 'module'):
@@ -28,20 +30,20 @@ def train_one_epoch(
 
         if current_step % 10 == 0 and accelerator.is_main_process:
 
+            loss_str = f"Train epoch {epoch}: [{i:5d}/{len(train_dataloader)} ({100. * i / len(train_dataloader):.0f}%)] Loss: {loss.item():.4f}"
+
             if tb_logger is not None:
                 tb_logger.add_scalar('[train]: loss', loss.item(), current_step)
-                tb_logger.add_scalar('[train]: loss_thickness', loss_dict["loss_thickness"].item(), current_step)
-                tb_logger.add_scalar('[train]: loss_material', loss_dict["loss_material"].item(), current_step)
                 tb_logger.add_scalar('[train]: lr', optimizer.param_groups[0]['lr'], current_step)
 
-            logger_train.info(
-                f"Train epoch {epoch}: ["
-                f"{i:5d}/{len(train_dataloader)}"
-                f" ({100. * i / len(train_dataloader):.0f}%)] "
-                f'Loss: {loss.item():.4f} | '
-                f'Thick: {loss_dict["loss_thickness"].item():.4f} | '
-                f'Mat: {loss_dict["loss_material"].item():.4f}'
-            )
+            for key, value in loss_dict.items():
+                if key.startswith("loss_") and isinstance(value, torch.Tensor):
+                     loss_val = value.item()
+                     loss_str += f" | {key.replace('loss_', '')}: {loss_val:.4f}"
+                     if tb_logger is not None:
+                         tb_logger.add_scalar(f'[train]: {key}', loss_val, current_step)
+
+            logger_train.info(loss_str)
 
 
         current_step += 1
