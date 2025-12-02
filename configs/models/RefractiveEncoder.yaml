@@ -1,0 +1,7 @@
+name: RefractiveEncoder
+structure_layers: 16
+hidden_size: 256
+num_layers: 8
+num_heads: 4
+num_latent_tokens: 32
+spectrum_len: 301 # (700-400)/1 + 1
