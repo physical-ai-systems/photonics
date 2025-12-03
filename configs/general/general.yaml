@@ -8,13 +8,12 @@ general:
   test_batch_size: 10
   losses: 
     lambda_thickness: 1.0
-    lambda_material: 1.0
   dataset:
     num_layers: 16
     ranges: [400, 700]
     steps: 1  # hpc 0.1
-    dataset_size: 1000
-    # dataset_size_test: 1000
+    dataset_size: 1
+    test_dataset_size: 1
 train:
   num_workers: 16
   save_checkpoints: true

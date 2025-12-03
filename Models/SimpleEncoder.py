@@ -9,7 +9,6 @@ class SimpleEncoder(nn.Module):
         self.name = config.get('name', 'SimpleEncoder')
         self.structure_layers = config.get('structure_layers', 16) 
         self.spectrum_len = config['spectrum_len']
-        self.num_materials = config.get('num_materials', 2)
         
         # TiTok-inspired architecture parameters
         raw_tokens = int(self.structure_layers ** 1.7)
@@ -46,7 +45,6 @@ class SimpleEncoder(nn.Module):
         
         # Output heads
         self.thickness_head = nn.Linear(self.width * self.num_latent_tokens, self.structure_layers)
-        self.material_head = nn.Linear(self.width * self.num_latent_tokens, self.structure_layers)
         
         self.apply(self._init_weights)
 
@@ -70,7 +68,6 @@ class SimpleEncoder(nn.Module):
             latent_tokens: Optional (Batch_Size, Num_Latent_Tokens, Width) - Pre-initialized latent tokens
         Returns:
             thickness: (Batch_Size, Structure_Layers) - Predicted thicknesses
-            material_logits: (Batch_Size, Structure_Layers, Num_Materials) - Scores for each material
         """
         spectrum = spectrum.float()
         batch_size = spectrum.shape[0]
@@ -103,6 +100,5 @@ class SimpleEncoder(nn.Module):
         
         # Generate predictions from latent tokens
         thickness = self.thickness_head(latent_tokens.view(batch_size, -1).contiguous()).squeeze(-1)  # (B, Structure_Layers)
-        material_logits = self.material_head(latent_tokens.view(batch_size, -1).contiguous())  # (B, Structure_Layers, Num_Materials)
         
-        return thickness, material_logits
+        return thickness

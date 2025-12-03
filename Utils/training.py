@@ -30,8 +30,6 @@ def train_one_epoch(
 
             if tb_logger is not None:
                 tb_logger.add_scalar('[train]: loss', loss.item(), current_step)
-                tb_logger.add_scalar('[train]: loss_thickness', loss_dict["loss_thickness"].item(), current_step)
-                tb_logger.add_scalar('[train]: loss_material', loss_dict["loss_material"].item(), current_step)
                 tb_logger.add_scalar('[train]: lr', optimizer.param_groups[0]['lr'], current_step)
 
             logger_train.info(
@@ -39,8 +37,6 @@ def train_one_epoch(
                 f"{i:5d}/{len(train_dataloader)}"
                 f" ({100. * i / len(train_dataloader):.0f}%)] "
                 f'Loss: {loss.item():.4f} | '
-                f'Thick: {loss_dict["loss_thickness"].item():.4f} | '
-                f'Mat: {loss_dict["loss_material"].item():.4f}'
             )
 
 

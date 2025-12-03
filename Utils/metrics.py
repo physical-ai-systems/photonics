@@ -20,7 +20,7 @@ from torchmetrics.functional import (
 
 
 class Metric(nn.Module):
-    def __init__(self, num_outputs=1):
+    def __init__(self):
         super(Metric, self).__init__()
         
     def metric(self, output, target):

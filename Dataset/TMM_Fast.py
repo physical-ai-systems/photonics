@@ -37,13 +37,15 @@ class PhotonicDatasetTMMFast(Dataset):
                  steps=1,
                  units="nm",
                  unit_prefix=None,
-                 thickness_range=(20, 200),  # in nm
+                 thickness_range=(0, 200),  # in nm
                  thickness_steps=1,
                  thickness_unit_prefix=None,  # nanometers
                  thickness_units="nm",      # nanometers
+                 material_choice_method='periodic',
                  batch_size=10,
                  dataset_size=10**6,
                  train_dataset_size=None,
+                 test_dataset_size=None,
                  test_dataset_downsize=1000,
                  test_mode=False,
                  device=None
@@ -57,7 +59,7 @@ class PhotonicDatasetTMMFast(Dataset):
         self.thickness_range, self.thickness_steps, self.thickness_unit_prefix, self.thickness_units = thickness_range, thickness_steps, thickness_unit_prefix, thickness_units
 
         self.test_mode = test_mode
-        self.dataset_size = dataset_size if not test_mode else dataset_size // test_dataset_downsize
+        self.dataset_size = dataset_size if not test_mode else (test_dataset_size if test_dataset_size is not None else dataset_size // test_dataset_downsize)
         self.train_dataset_size = train_dataset_size if train_dataset_size is not None else dataset_size
         self.batch_size = batch_size
 
@@ -70,14 +72,22 @@ class PhotonicDatasetTMMFast(Dataset):
         self.method = PhotonicTransferMatrixFast(device=self.device)
         self.method.device = self.device
 
+        self.material_choice_method = material_choice_method
         self.Materials = {
         "SiO2" : Material(self.wavelength, name="SiO2", refractive_index=1.4618),
         "Air" : Material(self.wavelength, name="Air",  refractive_index=1)  
         }
-    
-    def __len__(self):
-        return self.dataset_size
-    
+
+    def generate_material_choice(self, batch_size, num_layers, device, material_choice_method = 'periodic'):
+        if material_choice_method == 'periodic':
+            base = torch.arange(num_layers, device=device) % 2
+            return base.unsqueeze(0).repeat(batch_size, 1)
+        elif material_choice_method == 'random':
+            return torch.randint(0, 2, (batch_size, num_layers), dtype=torch.long, device=device)
+        
+        else:
+            raise ValueError("Invalid material_choice_method. Choose 'periodic' or 'random'.")
+
     def validate_num_layers(self, num_layers):
         # log2(num_layers) should be an integer
         # check if num_layers is a power of 2
@@ -85,6 +95,10 @@ class PhotonicDatasetTMMFast(Dataset):
 
         if not (num_layers > 0 and ((num_layers & (num_layers - 1)) == 0)):
             raise ValueError("num_layers should be a power of 2 (e.g., 2, 4, 8, 16, 32, ...)")
+        
+    def __len__(self):
+        return self.dataset_size
+    
     
     def set_seed_for_index(self, idx):
         """
@@ -134,9 +148,13 @@ class PhotonicDatasetTMMFast(Dataset):
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
         layer_thickness = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])  # Expand to match wavelength dimension  
-        
 
-        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long, device=self.device)
+        material_choice = self.generate_material_choice(
+            self.batch_size,
+            self.num_layers,
+            self.device,
+            material_choice_method=self.material_choice_method  # set to 'random' for random choice
+        )
         refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
 
         material_list = list(self.Materials.keys())
