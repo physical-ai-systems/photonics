@@ -1,4 +1,3 @@
-# Importing common libraries
 import os                         
 import numpy as np               
 import torch
@@ -328,6 +327,8 @@ def get_data_ploty(plot_data, down_size=100):
     print('x shape:', x.shape, 'y shape:', y.shape, 'z shape:', z.shape)
     return x, y, z
 
+import matplotlib.pyplot as plt
+
 def plot_spectrum_comparison(
     wavelength,
     target_spectrum,
@@ -338,7 +339,7 @@ def plot_spectrum_comparison(
     show=False
 ):
     """
-    Plots the target and predicted spectra for comparison.
+    Plots the target and predicted spectra for comparison using Matplotlib.
 
     Args:
         wavelength: x-axis values (wavelengths).
@@ -350,7 +351,7 @@ def plot_spectrum_comparison(
         show: Whether to display the plot.
 
     Returns:
-        fig: The plotly figure object.
+        fig: The matplotlib figure object.
     """
     # Convert inputs to numpy if they are tensors
     wavelength = torch_to_numpy(wavelength).flatten()
@@ -358,48 +359,25 @@ def plot_spectrum_comparison(
     pred_spectrum = torch_to_numpy(pred_spectrum).flatten()
 
     # Create figure
-    fig = go.Figure()
-
-    # Add Target Spectrum Trace
-    fig.add_trace(go.Scatter(
-        x=wavelength,
-        y=target_spectrum,
-        mode='lines',
-        name='Target',
-        line=dict(color='black', width=2)
-    ))
-
-    # Add Predicted Spectrum Trace
-    fig.add_trace(go.Scatter(
-        x=wavelength,
-        y=pred_spectrum,
-        mode='lines',
-        name='Prediction',
-        line=dict(color='red', width=2, dash='dash')
-    ))
-
-    # Layout customization
-    fig.update_layout(
-        title=title,
-        xaxis_title="Wavelength (nm)",
-        yaxis_title="Reflectance",
-        template="plotly_white",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-        width=800,
-        height=500
-    )
-
+    fig = plt.figure(figsize=(8, 5))
+    plt.plot(wavelength, target_spectrum, 'k-', label='Target', linewidth=2)
+    plt.plot(wavelength, pred_spectrum, 'r--', label='Prediction', linewidth=2)
+    
+    plt.title(title)
+    plt.xlabel("Wavelength (nm)")
+    plt.ylabel("Reflectance")
+    plt.legend(loc='upper right')
+    plt.grid(True)
+    
     # Save figure if directory is provided
     if save_dir:
-        save_image(fig, save_dir, save_name, ['png'], 800, 500)
-
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{save_name}.png")
+        plt.savefig(save_path, dpi=300)
+        
     if show:
-        fig.show()
+        plt.show()
+        
+    plt.close(fig) # Close to free memory
 
     return fig

@@ -67,15 +67,9 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                     min_th, max_th = dataset.thickness_range
                     pred_thickness_denorm = pred_thickness * (max_th - min_th) + min_th
                     
-                    # Check if material_preds is refractive index (4D) or class indices
-                    if material_preds.ndim == 4:
-                         if hasattr(dataset, 'compute_spectrum_from_refractive_indices'):
-                             R_pred, _ = dataset.compute_spectrum_from_refractive_indices(pred_thickness_denorm, material_preds)
-                         else:
-                             R_pred = None # Skip
-                    else:
-                        # Reconstruct spectrum
-                        R_pred, _ = dataset.compute_spectrum(pred_thickness_denorm, material_preds)
+                    # Reconstruct spectrum
+                    # compute_spectrum now handles both indices and raw refractive indices
+                    R_pred, _ = dataset.compute_spectrum(pred_thickness_denorm, material_preds)
                     
                     if R_pred is not None:
                         # Get data for plotting (first sample)
@@ -86,6 +80,7 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                         target_spec = spectrum[0]
                         pred_spec = R_pred[0]
                         
+                        # Determine save directory (infer from logger file handler or use default)
                         save_dir = None
                         for handler in logger_val.handlers:
                             if hasattr(handler, 'baseFilename'):
@@ -97,7 +92,8 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                         save_dir = os.path.join(save_dir, "plots")
                         os.makedirs(save_dir, exist_ok=True)
                         
-                        fig = plot_spectrum_comparison(
+                        # Plot using Matplotlib (now updated in Visualization.py)
+                        plot_spectrum_comparison(
                             wavelength=wavelength,
                             target_spectrum=target_spec,
                             pred_spectrum=pred_spec,
@@ -106,13 +102,13 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                             save_name=f"spectrum_epoch_{epoch}"
                         )
                         
+                        # Optional: Log to TensorBoard if desired
+                        # Since we just saved it, we could read it back or just replicate plotting for TB
                         if tb_logger is not None:
                              import matplotlib.pyplot as plt
-                             import io
-                             from PIL import Image
                              
-                             # Create a matplotlib version for TensorBoard to ensure compatibility
-                             plt.figure(figsize=(10, 6))
+                             # Re-create figure for TensorBoard to avoid interfering with saved file
+                             fig_tb = plt.figure(figsize=(10, 6))
                              plt.plot(wavelength.cpu().numpy(), target_spec.cpu().numpy(), 'k-', label='Target')
                              plt.plot(wavelength.cpu().numpy(), pred_spec.cpu().numpy(), 'r--', label='Prediction')
                              plt.title(f"Epoch {epoch} - Spectrum Comparison")
@@ -120,15 +116,14 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
                              plt.ylabel("Reflectance")
                              plt.legend()
                              plt.grid(True)
-                             tb_logger.add_figure('val/spectrum_comparison', plt.gcf(), epoch)
-                             plt.close()
+                             tb_logger.add_figure('val/spectrum_comparison', fig_tb, epoch)
+                             plt.close(fig_tb)
 
                 except Exception as e:
                     logger_val.error(f"Failed to plot spectrum: {e}")
                     import traceback
                     traceback.print_exc()
 
-    # Calculate metrics once at the end of the epoch
     if len(all_preds) > 0:
         all_preds = torch.cat(all_preds, dim=0)
         all_targets = torch.cat(all_targets, dim=0)
