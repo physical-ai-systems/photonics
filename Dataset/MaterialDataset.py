@@ -1,20 +1,19 @@
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-import sqlite3
 import os
-from Materials.refractiveindex_sqlite.refractivesqlite import dboperations as refractiveindex_database
-from Materials.refractiveindex_sqlite.refractivesqlite.material import NoExtinctionCoefficient
 from Methods.TransferMatrixMethod.PhotonicTransferMatrix import PhotonicTransferMatrix
 from Methods.TransferMatrixMethod.Structure import Structure
 from Methods.TransferMatrixMethod.Layer import Layer
 from Methods.TransferMatrixMethod.Wavelength import WaveLength
 from Materials.Materials import Material
 from Methods.PhysicalQuantity import PhysicalQuantity
+from Materials.refractiveindex_sqlite.refractivesqlite.dboperations import Database
 
-class SqliteMaterialDataset(Dataset):
+class MaterialDataset(Dataset):
     def __init__(self,
                  num_layers=20,
+                 num_materials=3,
                  ranges=(400, 700),
                  steps=1,
                  units="m",
@@ -31,7 +30,17 @@ class SqliteMaterialDataset(Dataset):
                  device=None,
                  db_path=None):
         
+        if db_path is None:
+            # Resolve default path: ../Materials/refractiveindex_sqlite/refractive.db
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            db_path = os.path.join(project_root, 'Materials', 'refractiveindex_sqlite', 'refractive.db')
+
         self.num_layers = num_layers
+        self.validate_num_layers(self.num_layers)
+
+        self.dataset_size = dataset_size
+        self.num_materials = num_materials
         self.ranges = ranges
         self.steps = steps
         self.units = units
@@ -54,96 +63,101 @@ class SqliteMaterialDataset(Dataset):
         self.wavelength.broadcast([self.batch_size, self.wavelength.shape[-1]])
         
         self.method = PhotonicTransferMatrix()
-
-        self.wavelength_nm = torch.arange(ranges[0], ranges[1] + steps/100, steps, dtype=torch.float32)
         
-        if db_path is None:
-            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self.db_path = os.path.join(base_path, 'Materials', 'refractiveindex_sqlite', 'refractive.db')
-        else:
-            self.db_path = db_path
-            
-        if not os.path.exists(self.db_path):
-            raise FileNotFoundError(f"Refractive database not found at {self.db_path}")
+        self.wavelength_nm = torch.arange(ranges[0], ranges[1] + steps/100, steps, dtype=torch.float32).to(self.device)
 
-        self.db_helper = refractiveindex_database.Database(self.db_path)
-        self.valid_materials = self._scan_database()
+        self.db = Database(db_path)
+        min_um = ranges[0] / 1000.0
+        max_um = ranges[1] / 1000.0
+        
+        query = f"SELECT pageid FROM pages WHERE rangeMin <= {min_um} AND rangeMax >= {max_um}"
+        results = self.db.search_custom(query)
+        
+        if not results:
+             raise RuntimeError(f"No materials found in range {ranges} nm")
 
-    def _scan_database(self):
-        range_min_um = self.ranges[0] / 1000.0
-        range_max_um = self.ranges[1] / 1000.0
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        query = """
-        SELECT pageid, shelf, book, page, filepath 
-        FROM pages 
-        WHERE rangeMin <= ? 
-          AND rangeMax >= ? 
-          AND hasrefractive = 1
-        """
-        c.execute(query, (range_min_um, range_max_um))
-        results = c.fetchall()
-        conn.close()
-        materials = []
-        for row in results:
-            materials.append({
-                'pageid': row[0],
-                'shelf': row[1],
-                'book': row[2],
-                'page': row[3],
-                'filepath': row[4]
-            })
-        return materials
+        raw_ids = [r[0] for r in results]
+        print(f"Found {len(raw_ids)} materials covering the range.")
+        
+        self.material_cache = {}
+        wl_np = self.wavelength_nm.cpu().numpy()
+        
+        for pid in raw_ids:
+            try:
+                mat = self.db.get_material(pid)
+                if mat is None: continue
+                
+                if mat.has_refractive():
+                    n = mat.get_refractiveindex(wl_np.copy())
+                else:
+                    continue 
+                    
+                if mat.has_extinction():
+                    k = mat.get_extinctioncoefficient(wl_np.copy())
+                else:
+                    k = np.zeros_like(wl_np)
+                
+                if isinstance(n, (float, int)):
+                    n = np.full_like(wl_np, n)
+                if isinstance(k, (float, int)):
+                    k = np.full_like(wl_np, k)
+
+                ri_complex = torch.from_numpy(n).float() + 1j * torch.from_numpy(k).float()
+                self.material_cache[pid] = ri_complex.to(self.device)
+                
+            except Exception as e:
+                print(f"Skipping material {pid}: {e}")
+        
+        self.valid_ids = list(self.material_cache.keys())
+        print(f"Cached {len(self.valid_ids)} valid materials.")
+
+        if len(self.valid_ids) < self.num_materials:
+             print("Warning: Not enough valid materials. Adjusting num_materials.")
+             self.num_materials = len(self.valid_ids)
+
+        if not self.valid_ids:
+            raise RuntimeError("No valid materials loaded.")
+
+    def validate_num_layers(self, num_layers):
+        if not (num_layers > 0 and ((num_layers & (num_layers - 1)) == 0)):
+            raise ValueError("num_layers should be a power of 2")
 
     def __len__(self):
-        return len(self.valid_materials)
+        return self.dataset_size
 
     @torch.no_grad()
     def __getitem__(self, idx):
-        mat_info = self.valid_materials[idx]
-        pageid = mat_info['pageid']
-        material_db = self.db_helper.get_material(pageid)
-        
-        if material_db is None:
-            return self.__getitem__((idx + 1) % len(self))
-
-        try:
-            n_values = [float(material_db.get_refractiveindex(wl.item())) for wl in self.wavelength_nm]
-        except Exception:
-            n_values = torch.ones_like(self.wavelength_nm)
-        
-        n_tensor = torch.tensor(n_values, dtype=torch.float32)
-
-        try:
-            k_values = [float(material_db.get_extinctioncoefficient(wl.item())) for wl in self.wavelength_nm]
-            k_tensor = torch.tensor(k_values, dtype=torch.float32)
-        except (NoExtinctionCoefficient, Exception):
-            k_tensor = torch.zeros_like(n_tensor)
-            
-        ri_tensor = torch.complex(n_tensor, k_tensor).to(self.device)
-        
         if not self.test_mode:
-            np.random.seed(idx)
-            torch.manual_seed(idx)
+            seed = idx
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+
+        chosen_ids = np.random.choice(self.valid_ids, self.num_materials, replace=False)
         
-        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long, device=self.device)
+        ri_list = [self.material_cache[pid] for pid in chosen_ids]
+        ri_stack = torch.stack(ri_list) 
         
-        layer_thickness = torch.rand(self.batch_size, self.num_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]
-        layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps
-        layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])
-        
-        layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
+        material_choice = torch.randint(0, self.num_materials + 1, (self.batch_size, self.num_layers), dtype=torch.long, device=self.device)
         
         refractive_indices = torch.ones(self.batch_size, self.num_layers, self.wavelength.shape[-1], dtype=torch.complex64, device=self.device)
         
-        mat_mask = (material_choice == 1)
-        ri_expanded = ri_tensor.unsqueeze(0).unsqueeze(0).expand(self.batch_size, self.num_layers, -1)
-        refractive_indices[mat_mask] = ri_expanded[mat_mask]
+        for k in range(1, self.num_materials + 1):
+            mask = (material_choice == k) 
+            if mask.any():
+                ri_vals = ri_stack[k-1].unsqueeze(0).unsqueeze(0).expand(self.batch_size, self.num_layers, -1)
+                refractive_indices[mask] = ri_vals[mask]
+
+        t_raw = torch.rand(self.batch_size, self.num_layers, device=self.device)
+        t_scaled = t_raw * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]
+        t_rounded = torch.round(t_scaled / self.thickness_steps) * self.thickness_steps
+        layer_thickness = t_rounded.clamp(self.thickness_range[0], self.thickness_range[1])
         
-        air_boundary = Material(self.wavelength, name="Air", refractive_index=1)
+        layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
+
+        air_boundary = Material(self.wavelength, name="Air", refractive_index=1.0)
         substrate = Material(self.wavelength, name="SiO2", refractive_index=1.4618)
-        
-        thickness = PhysicalQuantity(
+
+        thickness_pq = PhysicalQuantity(
             values=layer_thickness_exp,
             units=self.thickness_units,
             unit_prefix=self.thickness_unit_prefix,
@@ -151,38 +165,27 @@ class SqliteMaterialDataset(Dataset):
         )
         
         layers = []
-        for layer_idx in range(self.num_layers):
-            refractive_indices_layer = refractive_indices[:, layer_idx, :]
-            thickness_layer = thickness.values[:, layer_idx, :]
-            material = Material(
-                self.wavelength,
-                name=f"Layer_{layer_idx}_Material",
-                refractive_index=refractive_indices_layer
+        for i in range(self.num_layers):
+            mat = Material(
+                self.wavelength, 
+                name=f"L{i}", 
+                refractive_index=refractive_indices[:, i, :]
             )
-            layer = Layer(material=material, thickness=thickness_layer)
-            layers.append(layer)
+            layers.append(Layer(material=mat, thickness=thickness_pq.values[:, i, :]))
             
-        structure = Structure(layers=[Layer(air_boundary)] + layers + [Layer(substrate)],
-                              layers_parameters={'method': 'multi_layer'})
-        
-        R_calc, T_calc = self.method.Reflectance_from_layers(
-            structure.layers, 
-            theta_0=0, 
-            mode='TE'
+        struct = Structure(
+            layers=[Layer(air_boundary)] + layers + [Layer(substrate)], 
+            layers_parameters={'method': 'multi_layer'}
         )
         
-        def to_float_tensor(x):
-            if isinstance(x, torch.Tensor):
-                return x.detach().float()
-            return torch.tensor(np.array(x).copy(), dtype=torch.float32, device=self.device)
-
+        R, T = self.method.Reflectance_from_layers(struct.layers, theta_0=0, mode='TE')
+        
         min_th, max_th = self.thickness_range
-        target_thickness = (layer_thickness[..., 0] - min_th) / (max_th - min_th)
-
+        norm_thickness = (layer_thickness - min_th) / (max_th - min_th)
+        
         return {
-            'R': to_float_tensor(R_calc),
-            'T': to_float_tensor(T_calc), 
-            'material_choice': material_choice,           
-            'layer_thickness': to_float_tensor(target_thickness),
-            'name': f"{mat_info['shelf']}::{mat_info['book']}::{mat_info['page']}"
+            'R': R.detach().float(),
+            'T': T.detach().float(),
+            'material_choice': material_choice,
+            'layer_thickness': norm_thickness.detach().float()
         }

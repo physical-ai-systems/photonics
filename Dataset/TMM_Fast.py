@@ -1,13 +1,13 @@
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-from Methods.TransferMatrixMethod.PhotonicTransferMatrix import PhotonicTransferMatrix
+from Methods.TransferMatrixMethod.PhotonicTransferMatrix     import PhotonicTransferMatrix
 from Methods.TransferMatrixMethod.PhotonicTransferMatrixFast import PhotonicTransferMatrixFast
-from Methods.TransferMatrixMethod.Structure              import Structure, VectorizedStructure
-from Methods.TransferMatrixMethod.Layer                  import Layer, MultiLayer
-from Methods.TransferMatrixMethod.Wavelength             import WaveLength
-from Materials.Materials                                 import Material
-from Methods.PhysicalQuantity                            import PhysicalQuantity
+from Methods.TransferMatrixMethod.Structure                  import Structure, VectorizedStructure
+from Methods.TransferMatrixMethod.Layer                      import Layer, MultiLayer
+from Methods.TransferMatrixMethod.Wavelength                 import WaveLength
+from Materials.Materials                                     import Material
+from Methods.PhysicalQuantity                                import PhysicalQuantity
 
 
 class PhotonicDatasetTMMFast(Dataset):
@@ -128,7 +128,6 @@ class PhotonicDatasetTMMFast(Dataset):
         
         boundary_layers = MultiLayer(material=Material(self.wavelength, name="Boundary_Material", refractive_index=boundary_refractive_indices), thickness=None)
 
-        # Create random layers thickness and material choices
         layer_thickness = torch.rand(self.batch_size, self.num_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
@@ -167,9 +166,7 @@ class PhotonicDatasetTMMFast(Dataset):
         )
         thickness = thickness.values[...,0]  # Remove wavelength dimension for output
         thickness = (thickness - self.thickness_range[0]) / (self.thickness_range[1] - self.thickness_range[0])  # Normalize thickness to be between 0 and 1
-                                                                                                            
-        # Prepare refractive indices (n, k)                                                                 
-        # Current 'refractive_indices' is (B, L, W) - Real part                                             
+                                                                                                             
         n_part = refractive_indices.float()                                                                 
         k_part = torch.zeros_like(n_part) # Assuming k=0 for now                                            
         refractive_indices_complex = torch.stack([n_part, k_part], dim=-1) # (B, L, W, 2)                   
