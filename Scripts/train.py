@@ -43,7 +43,8 @@ def main():
     accelerator.even_batches = False
     device = accelerator.device
     print(f"Using device: {device}")
-    # device = 'cpu'
+    if not torch.cuda.is_available():
+        device = 'cpu'
 
     experiment_path = os.path.join(args.main_path, 'experiments', args.experiment)
     

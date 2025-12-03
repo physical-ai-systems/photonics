@@ -4,8 +4,8 @@ general:
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"
-  batch_size: 150
-  test_batch_size: 150
+  batch_size: 10
+  test_batch_size: 10
   losses: 
     lambda_thickness: 1.0
     lambda_material: 1.0
