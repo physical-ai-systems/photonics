@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import os
-from Methods.TransferMatrixMethod.PhotonicTransferMatrix import PhotonicTransferMatrix
+from Methods.TransferMatrixMethod.PhotonicTransferMatrixFast import PhotonicTransferMatrixFast
 from Methods.TransferMatrixMethod.Structure import Structure
 from Methods.TransferMatrixMethod.Layer import Layer
 from Methods.TransferMatrixMethod.Wavelength import WaveLength
@@ -62,8 +62,9 @@ class MaterialDataset(Dataset):
         self.wavelength.to(self.device)
         self.wavelength.broadcast([self.batch_size, self.wavelength.shape[-1]])
         
-        self.method = PhotonicTransferMatrix()
-        
+        self.method = PhotonicTransferMatrixFast(device=self.device)
+        self.train_dataset_size = train_dataset_size if train_dataset_size is not None else dataset_size
+
         self.wavelength_nm = torch.arange(ranges[0], ranges[1] + steps/100, steps, dtype=torch.float32).to(self.device)
 
         self.db = Database(db_path)

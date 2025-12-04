@@ -5,3 +5,10 @@ num_layers: 8
 num_heads: 4
 num_latent_tokens: 32
 spectrum_len: 301 # (700-400)/1 + 1
+
+vq_config:
+  codebook_size: 1024
+  token_size: 256
+  commitment_cost: 0.25
+  use_l2_norm: False
+  clustering_vq: False

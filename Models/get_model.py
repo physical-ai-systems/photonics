@@ -24,6 +24,9 @@ def get_model(config, args, device):
             loss_args['lambda_refractive'] = args.losses['lambda_refractive']
         elif 'lambda_material' in args.losses: # Fallback/Mapping
             loss_args['lambda_refractive'] = args.losses['lambda_material']
+        
+        if 'lambda_quantizer' in args.losses:
+            loss_args['lambda_quantizer'] = args.losses['lambda_quantizer']
             
         loss = RefractiveIndexLoss(**loss_args)
         vae = None
