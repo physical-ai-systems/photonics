@@ -17,7 +17,7 @@ def get_args(config_stage = "train"):
 
 
 
-def train_options():
+def train_options(args=None):
     parser = argparse.ArgumentParser(description="Training script.")
 
     # Load all arguments from the config file
@@ -37,11 +37,11 @@ def train_options():
             help=f"{key} (default: %(default)s)"
         )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return args
 
 
-def test_options():
+def test_options(args=None):
     parser = argparse.ArgumentParser(description="Testing script.")
 
     # Load all arguments from the config file
@@ -60,5 +60,5 @@ def test_options():
             help=f"{key} (default: %(default)s)"
         )
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     return args

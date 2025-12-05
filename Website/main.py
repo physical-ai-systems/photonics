@@ -18,7 +18,7 @@ app.add_middleware(
 
 # Initialize model
 try:
-    model = InferenceModel(experiment_name='checkpoint_088')
+    model = InferenceModel()
     print("Model loaded successfully")
 except Exception as e:
     print(f"Error loading model: {e}")
