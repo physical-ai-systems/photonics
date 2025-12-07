@@ -9,7 +9,7 @@ general:
   losses: 
     lambda_thickness: 1.0
   dataset:
-    thickness_range: [0, 50]  # in nm
+    thickness_range: [0, 200]  # in nm
     thickness_steps: 1
     structure_layers: 32
     ranges: [400, 700]

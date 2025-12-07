@@ -6,9 +6,7 @@ import csv
 import numpy as np
 from Utils.metrics import Metric
 from Utils.Utils import AverageMeter
-from Visualization.MatplotlibVis import plot_sample_spectrum, plot_structure
-from Methods.TransferMatrixMethod.Structure import Structure
-from Methods.TransferMatrixMethod.Layer import Layer
+from Visualization.MatplotlibVis import plot_sample_spectrum, save_structure_plots, plot_first_sample
 
 def get_unwrapped_model(model):
     """Get the unwrapped model from a potentially wrapped model (e.g., DataParallel, DistributedDataParallel)."""
@@ -35,35 +33,21 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
             loss_dict = criterion(output, batch)
 
             loss_meter.update(loss_dict["loss"])
-                        
-    if accelerator.is_main_process:
-        if i == 0:
-            unwrapped_model = get_unwrapped_model(model)
-            if unwrapped_model.name== 'SimpleEncoderNextLayer':
-                 output_for_plot = unwrapped_model.generate(spectrum)
-            else:
-                 output_for_plot = output
-            
-            R_calc, T_calc = test_dataloader.dataset.compute_spectrum(layer_thickness=output_for_plot.to(test_dataloader.dataset.device), material_choice=batch['material_choice'])
-            
-            # Add plots to tensorboard
-            if tb_logger is not None:
-                # Add histogram of calculated spectra
-                tb_logger.add_histogram('[val]: R_calc', R_calc, epoch + 1)
-                tb_logger.add_histogram('[val]: T_calc', T_calc, epoch + 1)
-
-                # Add histogram of original input spectra
-                if 'R' in batch:
-                    tb_logger.add_histogram('[val]: R_orig', batch['R'], epoch + 1)
-                if 'T' in batch:
-                    tb_logger.add_histogram('[val]: T_orig', batch['T'], epoch + 1)
+                            
+            if accelerator.is_main_process:
+                if i == 0:
+                    unwrapped_model = get_unwrapped_model(model)
+                    if unwrapped_model.name== 'SimpleEncoderNextLayer':
+                        output_for_plot = unwrapped_model.generate(spectrum)
+                    else:
+                        output_for_plot = output
+                    
+                    R_calc, T_calc = test_dataloader.dataset.compute_spectrum(layer_thickness=output_for_plot.to(test_dataloader.dataset.device), material_choice=batch['material_choice'])
+                    
+                    # Add plots to tensorboard
+                    if tb_logger is not None:
+                        plot_first_sample(tb_logger, test_dataloader.dataset, batch, R_calc, epoch, output_for_plot)
                 
-                # Add histogram of output (layer thickness)
-                tb_logger.add_histogram('[val]: layer_thickness', output_for_plot, epoch + 1)
-            
-            
-
-        
         if tb_logger is not None:
             tb_logger.add_scalar('[val]: loss', loss_meter.avg, epoch + 1)
 
@@ -71,7 +55,7 @@ def test_one_epoch(epoch, test_dataloader, model, criterion, logger_val, tb_logg
             f"Test epoch {epoch}: "
             f"Loss: {loss_meter.avg:.4f} | "
         )
-        
+            
 
     accelerator.wait_for_everyone()
     return loss_meter.avg
@@ -139,33 +123,7 @@ def evaluate_test_set(net, test_dataloader, experiment_path, accelerator, logger
                 plot_sample_spectrum(wavelengths, target_R, pred_R, idx, loss_per_sample_cpu[b], plots_dir)
 
                 # Reconstruct structure for visualization
-                layers_vis_pred = []
-                layers_vis_target = []
-                # Assuming dataset.Materials is available and ordered as used in compute_spectrum
-                if hasattr(dataset, 'Materials'):
-                    material_names = list(dataset.Materials.keys())
-                    
-                    for l_idx in range(dataset.num_layers):
-                        # Ensure material choice is integer
-                        mat_idx = int(batch['material_choice'][b, l_idx].item())
-                        # Handle case where mat_idx might be out of bounds or float
-                        if mat_idx >= len(material_names):
-                             mat_idx = 0 # Default or error handling
-                        
-                        mat_name = material_names[mat_idx]
-                        material = dataset.Materials[mat_name]
-                        
-                        thickness_pred = pred_thickness_denorm[b, l_idx]
-                        layers_vis_pred.append(Layer(material, thickness=thickness_pred))
-                        
-                        thickness_target = target_thickness_denorm[b, l_idx]
-                        layers_vis_target.append(Layer(material, thickness=thickness_target))
-                    
-                    structure_vis_pred = Structure(layers=layers_vis_pred, mode='TE', layers_parameters={'method': 'multi_layer'})
-                    plot_structure(structure_vis_pred, save_path=os.path.join(plots_dir, f'{idx}structure_pred_{idx}.png'), title=f'Structure Pred {idx}')
-                    
-                    structure_vis_target = Structure(layers=layers_vis_target, mode='TE', layers_parameters={'method': 'multi_layer'})
-                    plot_structure(structure_vis_target, save_path=os.path.join(plots_dir, f'{idx}structure_target_{idx}.png'), title=f'Structure Target {idx}')
+                save_structure_plots(dataset, batch['material_choice'][b], pred_thickness_denorm[b], target_thickness_denorm[b], plots_dir, f'{idx}', f'{idx}')
                 
     # Save losses to CSV
     if accelerator.is_main_process:
