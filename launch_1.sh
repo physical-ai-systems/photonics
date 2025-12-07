@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=0.01_photonics
+#SBATCH --job-name=2.0_simple_encoder
 #SBATCH --nodes=1
 
 # For h200
@@ -12,11 +12,12 @@
 NUM_GPUS=4
 # MIXED_PRECISION="bf16"
 # MIXED_PRECISION="fp16"
+EXPERIMENT="2.0_simple_encoder"
 MIXED_PRECISION="no"
 GRADIENT_ACCUMULATION_STEPS=1
-MAIN_PATH="/home/hpc/iwnt/iwnt153h"
-REPO_DIR=$MAIN_PATH"/photonics"
-BATCH_SIZE=1500
+# MAIN_PATH="/home/woody/iwnt/iwnt153h"
+REPO_DIR="/home/hpc/iwnt/iwnt153h/photonics"
+BATCH_SIZE=400
 EPOCHS=200
 LEARNING_RATE=1e-4
 CLIP_MAX_NORM=1
@@ -35,30 +36,16 @@ echo "Number of GPUs:              $NUM_GPUS"
 echo "Mixed Precision:             $MIXED_PRECISION"
 echo "Gradient Accumulation Steps: $GRADIENT_ACCUMULATION_STEPS"
 # echo "Config:                      $CONFIG"
-# echo "Experiment:                  $EXPERIMENT"
+echo "Experiment:                  $EXPERIMENT"
 echo "Batch Size (per GPU):        $BATCH_SIZE"
 echo "Test Batch Size:             $BATCH_SIZE"
 echo "Effective Batch Size:        $((NUM_GPUS * BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS))"
 echo "Epochs:                      $EPOCHS"
 echo "Learning Rate:               $LEARNING_RATE"
-# echo "Aux Learning Rate:           $AUX_LEARNING_RATE"
 echo "Clip Max Norm:               $CLIP_MAX_NORM"
 # echo "Main Path:                   $MAIN_PATH"
-# echo "Dataset:                     ${DATASET:-not specified}"
-# echo "Dataset CSV:                 ${DATASET_CSV:-not specified}"
 echo "=================================="
 echo ""
-
-# # Check if accelerate is installed
-# if ! command -v accelerate &> /dev/null; then
-#     echo "Error: accelerate is not installed"
-#     echo "Please install it: pip install accelerate"
-#     exit 1
-# fi
-
-# # Launch training
-# echo "Launching distributed training..."
-# echo ""
 
 
 # Accelerate modes: eager, aot_eager, inductor, aot_ts_nvfuser, nvprims_nvfuser, cudagraphs, ofi, fx2trt, onnxrt, tensorrt, aot_torchxla_trace_once, torhchxla_trace_once, ipex, tvm
@@ -75,15 +62,13 @@ TRAIN_CMD="accelerate launch \
   --test_batch_size $BATCH_SIZE \
   --epochs $EPOCHS \
   --learning_rate $LEARNING_RATE \
+  --exp $EXPERIMENT \
   --clip_max_norm $CLIP_MAX_NORM \
   --mixed_precision $MIXED_PRECISION"
 
   # --config $CONFIG \
-  # --exp $EXPERIMENT \
-  # --aux_learning_rate $AUX_LEARNING_RATE \
   # --main_path $MAIN_PATH \
-  # --dataset $DATASET \
-  # --dataset_csv $DATASET_CSV \
+
 
 # Execute the command
 eval $TRAIN_CMD

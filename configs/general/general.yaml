@@ -9,15 +9,15 @@ general:
   losses: 
     lambda_thickness: 1.0
   dataset:
-    num_layers: 16
+    num_layers: 32
     ranges: [400, 700]
     steps: 1  # hpc 0.1
-    dataset_size: 1
+    dataset_size: 5000
     test_dataset_size: 1
 train:
   num_workers: 16
   save_checkpoints: true
-  epochs: 100
+  epochs: 200
   save_every: 2
   clip_max_norm: 1.0
   learning_rate: 0.0001
