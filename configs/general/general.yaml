@@ -1,6 +1,6 @@
 general:
   main_path: ./
-  config: simple_encoder
+  config: SimpleEncoderNextLayer
   experiment: test_experiment
   seed: 42
   mixed_precision: "no"
