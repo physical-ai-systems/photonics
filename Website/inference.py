@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from Models.get_model import get_model
 from Utils.config import model_config
+from Utils.args import test_options
 from Dataset.TMM_Fast import PhotonicDatasetTMMFast
 
 class InferenceModel:
@@ -17,15 +18,12 @@ class InferenceModel:
         self.repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
+        # Load args
+        self.args = test_options(args=[])
+
         # Load config
         config_path = os.path.join(self.repo_path, 'configs', 'models', config_name + '.yaml')
-        self.config = model_config(config_path)
-        
-        # Dummy args
-        class Args:
-            losses = {'lambda_thickness': 1.0, 'lambda_material': 1.0}
-            epochs = 1
-        self.args = Args()
+        self.config = model_config(config_path, self.args)
         
         # Initialize model
         self.net, _, _ = get_model(self.config, self.args, self.device)
@@ -38,7 +36,8 @@ class InferenceModel:
         # Load checkpoint
         # Check if experiment_name is a direct path to a checkpoint
         direct_checkpoint_path = os.path.join(self.repo_path, 'experiments', experiment_name)
-        default_checkpoint_path = os.path.join(self.repo_path, 'experiments', experiment_name, 'checkpoints', 'checkpoint_best_loss')
+        # default_checkpoint_path = os.path.join(self.repo_path, 'experiments', experiment_name, 'checkpoints', 'checkpoint_best_loss')
+        default_checkpoint_path = os.path.join(self.repo_path, 'experiments', 'checkpoint_best_loss')
         
         if os.path.exists(os.path.join(direct_checkpoint_path, 'pytorch_model.bin')):
             checkpoint_path = direct_checkpoint_path
@@ -67,7 +66,7 @@ class InferenceModel:
 
         # Initialize TMM for spectrum calculation
         self.tmm = PhotonicDatasetTMMFast(
-            num_layers=self.config.structure_layers,
+            structure_layers=self.config.structure_layers,
             ranges=(400, 700),
             steps=1,
             device=('cuda' if torch.cuda.is_available() else 'cpu')
@@ -89,7 +88,20 @@ class InferenceModel:
         spectrum_tensor = torch.tensor(spectrum, dtype=torch.float32).unsqueeze(0).to(self.device)
         
         with torch.no_grad():
-            thickness, material_logits = self.net(spectrum_tensor)
+            outputs = self.net(spectrum_tensor)
+            
+            if isinstance(outputs, tuple):
+                thickness, material_logits = outputs
+                # Handle material logits
+                if material_logits.dim() == 3:
+                    material_indices = torch.argmax(material_logits, dim=-1)
+                else:
+                    material_indices = (material_logits > 0).long()
+            else:
+                thickness = outputs
+                # Assume periodic materials if not predicted
+                num_layers = thickness.shape[1]
+                material_indices = (torch.arange(num_layers, device=self.device) % 2).unsqueeze(0).repeat(thickness.shape[0], 1)
             
         # Post-process
         # Denormalize thickness
@@ -100,7 +112,7 @@ class InferenceModel:
         thickness_nm = thickness * (max_th - min_th) + min_th
         
         # Material indices
-        material_indices = (material_logits > 0).long()
+        # material_indices is already calculated above
         
         # Calculate produced spectrum
         R_calc, T_calc = self.tmm.compute_spectrum(thickness_nm.cpu(), material_indices.cpu())

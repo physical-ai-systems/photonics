@@ -18,7 +18,6 @@ from Utils.args import train_options
 from Utils.config import model_config
 from Models.get_model import get_model, get_schedulers
 from Utils.Utils import setup_environment
-from Dataset.Dataset import PhotonicDataset
 from Dataset.TMM_Fast import PhotonicDatasetTMMFast
 
 
@@ -28,7 +27,7 @@ def main():
     args = train_options()
     repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     model_config_path = os.path.join(repo_path, 'configs', 'models', args.config + '.yaml')
-    config = model_config(model_config_path)
+    config = model_config(model_config_path, args)
 
     setup_environment(args.seed)
 

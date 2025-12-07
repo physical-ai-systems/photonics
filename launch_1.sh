@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=2.0_simple_encoder
+#SBATCH --job-name=3.0_SimpleEncoderNextLayer
 #SBATCH --nodes=1
 
 # For h200
@@ -12,12 +12,12 @@
 NUM_GPUS=4
 # MIXED_PRECISION="bf16"
 # MIXED_PRECISION="fp16"
-EXPERIMENT="2.0_simple_encoder"
+EXPERIMENT="3.0_SimpleEncoderNextLayer"
 MIXED_PRECISION="no"
 GRADIENT_ACCUMULATION_STEPS=1
 # MAIN_PATH="/home/woody/iwnt/iwnt153h"
 REPO_DIR="/home/hpc/iwnt/iwnt153h/photonics"
-BATCH_SIZE=400
+BATCH_SIZE=500
 EPOCHS=200
 LEARNING_RATE=1e-4
 CLIP_MAX_NORM=1

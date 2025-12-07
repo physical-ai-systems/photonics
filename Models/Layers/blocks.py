@@ -39,13 +39,15 @@ class ResidualAttentionBlock(nn.Module):
             n_head,
             mlp_ratio = 4.0,
             act_layer = nn.GELU,
-            norm_layer = nn.LayerNorm
+            norm_layer = nn.LayerNorm,
+            causal = False
         ):
         super().__init__()
 
         self.ln_1 = norm_layer(d_model)
         self.attn = nn.MultiheadAttention(d_model, n_head)
         self.mlp_ratio = mlp_ratio
+        self.causal = causal
         # optionally we can disable the FFN
         if mlp_ratio > 0:
             self.ln_2 = norm_layer(d_model)
@@ -60,7 +62,11 @@ class ResidualAttentionBlock(nn.Module):
             self,
             x: torch.Tensor
     ):
-        return self.attn(x, x, x, need_weights=False)[0]
+        attn_mask = None
+        if self.causal:
+            L = x.shape[0]
+            attn_mask = torch.triu(torch.ones(L, L, device=x.device, dtype=torch.bool), diagonal=1)
+        return self.attn(x, x, x, need_weights=False, attn_mask=attn_mask)[0]
 
     def forward(
             self,
@@ -85,7 +91,7 @@ print(f'attention mode is {ATTENTION_MODE}')
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.):
+    def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0., causal=False):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
@@ -94,6 +100,7 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
+        self.causal = causal
 
     def forward(self, x):
         B, L, C = x.shape
@@ -102,17 +109,24 @@ class Attention(nn.Module):
         if ATTENTION_MODE == 'flash':
             qkv = einops.rearrange(qkv, 'B L (K H D) -> K B H L D', K=3, H=self.num_heads).float()
             q, k, v = qkv[0], qkv[1], qkv[2]  # B H L D
-            x = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+            x = torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=self.causal)
             x = einops.rearrange(x, 'B H L D -> B L (H D)')
         elif ATTENTION_MODE == 'xformers':
             qkv = einops.rearrange(qkv, 'B L (K H D) -> K B L H D', K=3, H=self.num_heads)
             q, k, v = qkv[0], qkv[1], qkv[2]  # B L H D
-            x = xformers.ops.memory_efficient_attention(q, k, v)
+            attn_bias = None
+            if self.causal:
+                attn_bias = xformers.ops.LowerTriangularMask()
+            x = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=attn_bias)
             x = einops.rearrange(x, 'B L H D -> B L (H D)', H=self.num_heads)
         elif ATTENTION_MODE == 'math':
             qkv = einops.rearrange(qkv, 'B L (K H D) -> K B H L D', K=3, H=self.num_heads)
             q, k, v = qkv[0], qkv[1], qkv[2]  # B H L D
             attn = (q @ k.transpose(-2, -1)) * self.scale
+            if self.causal:
+                # MASKING: Ensure we don't look into the future
+                mask = torch.triu(torch.ones(L, L, device=x.device, dtype=torch.bool), diagonal=1)
+                attn.masked_fill_(mask, float("-inf"))
             attn = attn.softmax(dim=-1)
             attn = self.attn_drop(attn)
             x = (attn @ v).transpose(1, 2).reshape(B, L, C)
@@ -177,11 +191,11 @@ class Mlp(nn.Module):
 class UViTBlock(nn.Module):
 
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
-                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm, skip=False, use_checkpoint=False):
+                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm, skip=False, use_checkpoint=False, causal=False):
         super().__init__()
         self.norm1 = norm_layer(dim)
         self.attn = Attention(
-            dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
+            dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, causal=causal)
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
