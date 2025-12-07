@@ -15,7 +15,7 @@ class PhotonicDataset(Dataset):
     
     Parameters:
     -----------
-    num_layers : int
+    structure_layers : int
         Number of layers in the photonic structure (default: 20)
     ranges : tuple
         Wavelength range in nm (min_nm, max_nm)
@@ -31,7 +31,7 @@ class PhotonicDataset(Dataset):
     
     @torch.no_grad()
     def __init__(self,
-                 num_layers=20,
+                 structure_layers=20,
                  ranges=(400, 700),
                  steps=1,
                  units="m",
@@ -45,10 +45,11 @@ class PhotonicDataset(Dataset):
                  train_dataset_size=None,
                  test_dataset_downsize=100,
                  test_mode=False,
-                 device=None
+                 device=None,
+                 spectrum_len=None
                  ):
         
-        self.num_layers = num_layers
+        self.structure_layers = structure_layers
         self.ranges = ranges  # (min_nm, max_nm)
         self.steps = steps    # step in nm
         self.units = units
@@ -62,6 +63,7 @@ class PhotonicDataset(Dataset):
         self.train_dataset_size = train_dataset_size if train_dataset_size is not None else dataset_size
         self.test_mode = test_mode
         self.device = device if device is not None else torch.device('cpu')
+        self.spectrum_len = spectrum_len
         self.wavelength = WaveLength(
             ranges=self.ranges,
             steps=self.steps,
@@ -104,14 +106,14 @@ class PhotonicDataset(Dataset):
             np.random.seed(self.train_dataset_size + idx)
             torch.manual_seed(self.train_dataset_size + idx)
 
-        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long, device=self.device)
+        material_choice = torch.randint(0, 2, (self.batch_size, self.structure_layers), dtype=torch.long, device=self.device)
 
-        layer_thickness = torch.rand(self.batch_size, self.num_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
+        layer_thickness = torch.rand(self.batch_size, self.structure_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # nm
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps  # round to nearest step
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])  # ensure in range
         layer_thickness = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])  # Expand to match wavelength dimension  
         
-        refractive_indices = torch.empty(self.batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
+        refractive_indices = torch.empty(self.batch_size, self.structure_layers, self.wavelength.shape[-1], device=self.device)
 
         material_list = list(self.Materials.keys())
         for i, mat_name in enumerate(material_list):
@@ -132,7 +134,7 @@ class PhotonicDataset(Dataset):
 
         layers = []
 
-        for layer_idx in range(self.num_layers):
+        for layer_idx in range(self.structure_layers):
             refractive_indices_layer = refractive_indices[:, layer_idx, :]
             thickness_layer = thickness.values[:, layer_idx, :]
             material = Material(
@@ -185,7 +187,7 @@ class PhotonicDataset(Dataset):
         
         layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
         
-        refractive_indices = torch.empty(batch_size, self.num_layers, self.wavelength.shape[-1], device=self.device)
+        refractive_indices = torch.empty(batch_size, self.structure_layers, self.wavelength.shape[-1], device=self.device)
 
         material_list = list(self.Materials.keys())
         for i, mat_name in enumerate(material_list):
@@ -207,7 +209,7 @@ class PhotonicDataset(Dataset):
 
         layers = []
 
-        for layer_idx in range(self.num_layers):
+        for layer_idx in range(self.structure_layers):
             refractive_indices_layer = refractive_indices[:, layer_idx, :]
             thickness_layer = thickness.values[:, layer_idx, :]
             material = Material(

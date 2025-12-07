@@ -28,7 +28,7 @@ def main():
     args = train_options()
     repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     model_config_path = os.path.join(repo_path, 'configs', 'models', args.config + '.yaml')
-    config = model_config(model_config_path)
+    config = model_config(model_config_path, args)
 
     setup_environment(args.seed)
 

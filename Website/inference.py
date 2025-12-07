@@ -18,12 +18,12 @@ class InferenceModel:
         self.repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        # Load config
-        config_path = os.path.join(self.repo_path, 'configs', 'models', config_name + '.yaml')
-        self.config = model_config(config_path)
-        
         # Load args
         self.args = test_options(args=[])
+
+        # Load config
+        config_path = os.path.join(self.repo_path, 'configs', 'models', config_name + '.yaml')
+        self.config = model_config(config_path, self.args)
         
         # Initialize model
         self.net, _, _ = get_model(self.config, self.args, self.device)
@@ -66,7 +66,7 @@ class InferenceModel:
 
         # Initialize TMM for spectrum calculation
         self.tmm = PhotonicDatasetTMMFast(
-            num_layers=self.config.structure_layers,
+            structure_layers=self.config.structure_layers,
             ranges=(400, 700),
             steps=1,
             device=('cuda' if torch.cuda.is_available() else 'cpu')

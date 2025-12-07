@@ -10,7 +10,7 @@ def test_device(device_name):
     try:
         device = torch.device(device_name)
         dataset = PhotonicDataset(
-            num_layers=5,
+            structure_layers=5,
             ranges=(400, 700),
             steps=100,
             dataset_size=10,

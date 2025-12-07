@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 def main():
     dataset = PhotonicDataset(
-        num_layers=20,
+        structure_layers=20,
         ranges=(400, 700),
         steps=1,
         dataset_size=1000

@@ -9,11 +9,15 @@ general:
   losses: 
     lambda_thickness: 1.0
   dataset:
-    num_layers: 16
+    thickness_range: [0, 50]  # in nm
+    thickness_steps: 1
+    structure_layers: 32
     ranges: [400, 700]
     steps: 1  # hpc 0.1
     dataset_size: 1
-    test_dataset_size: 1
+    test_dataset_size: 10
+    spectrum_len: 301 # (700-400)/1 + 1
+num_materials: 2
 train:
   num_workers: 16
   save_checkpoints: true
@@ -21,3 +25,5 @@ train:
   save_every: 2
   clip_max_norm: 1.0
   learning_rate: 0.0001
+test:
+  num_workers: 16

@@ -16,7 +16,11 @@ def train_one_epoch(
         with accelerator.autocast():
             optimizer.zero_grad()
             
-            output = model(spectrum) 
+            unwrapped_model = get_unwrapped_model(model)
+            if unwrapped_model.name == 'SimpleEncoderNextLayer':
+                 output = model(spectrum, layer_thickness=batch['layer_thickness'])
+            else:
+                 output = model(spectrum) 
             
             loss_dict = criterion(output, batch)
             loss = loss_dict["loss"]

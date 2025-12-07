@@ -14,7 +14,7 @@ from Methods.PhysicalQuantity import PhysicalQuantity
 
 class SqliteMaterialDataset(Dataset):
     def __init__(self,
-                 num_layers=20,
+                 structure_layers=20,
                  ranges=(400, 700),
                  steps=1,
                  units="m",
@@ -29,9 +29,10 @@ class SqliteMaterialDataset(Dataset):
                  test_dataset_downsize=100,
                  test_mode=False,
                  device=None,
-                 db_path=None):
+                 db_path=None,
+                 spectrum_len=None):
         
-        self.num_layers = num_layers
+        self.structure_layers = structure_layers
         self.ranges = ranges
         self.steps = steps
         self.units = units
@@ -43,6 +44,7 @@ class SqliteMaterialDataset(Dataset):
         self.batch_size = batch_size
         self.test_mode = test_mode
         self.device = device if device is not None else torch.device('cpu')
+        self.spectrum_len = spectrum_len
         
         self.wavelength = WaveLength(
             ranges=self.ranges,
@@ -126,18 +128,18 @@ class SqliteMaterialDataset(Dataset):
             np.random.seed(idx)
             torch.manual_seed(idx)
         
-        material_choice = torch.randint(0, 2, (self.batch_size, self.num_layers), dtype=torch.long, device=self.device)
+        material_choice = torch.randint(0, 2, (self.batch_size, self.structure_layers), dtype=torch.long, device=self.device)
         
-        layer_thickness = torch.rand(self.batch_size, self.num_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]
+        layer_thickness = torch.rand(self.batch_size, self.structure_layers, device=self.device) * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]
         layer_thickness = torch.round(layer_thickness / self.thickness_steps) * self.thickness_steps
         layer_thickness = layer_thickness.clamp(self.thickness_range[0], self.thickness_range[1])
         
         layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
         
-        refractive_indices = torch.ones(self.batch_size, self.num_layers, self.wavelength.shape[-1], dtype=torch.complex64, device=self.device)
+        refractive_indices = torch.ones(self.batch_size, self.structure_layers, self.wavelength.shape[-1], dtype=torch.complex64, device=self.device)
         
         mat_mask = (material_choice == 1)
-        ri_expanded = ri_tensor.unsqueeze(0).unsqueeze(0).expand(self.batch_size, self.num_layers, -1)
+        ri_expanded = ri_tensor.unsqueeze(0).unsqueeze(0).expand(self.batch_size, self.structure_layers, -1)
         refractive_indices[mat_mask] = ri_expanded[mat_mask]
         
         air_boundary = Material(self.wavelength, name="Air", refractive_index=1)
@@ -151,7 +153,7 @@ class SqliteMaterialDataset(Dataset):
         )
         
         layers = []
-        for layer_idx in range(self.num_layers):
+        for layer_idx in range(self.structure_layers):
             refractive_indices_layer = refractive_indices[:, layer_idx, :]
             thickness_layer = thickness.values[:, layer_idx, :]
             material = Material(
