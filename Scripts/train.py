@@ -18,7 +18,6 @@ from Utils.args import train_options
 from Utils.config import model_config
 from Models.get_model import get_model, get_schedulers
 from Utils.Utils import setup_environment
-from Dataset.Dataset import PhotonicDataset
 from Dataset.TMM_Fast import PhotonicDatasetTMMFast
 
 
