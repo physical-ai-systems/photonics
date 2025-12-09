@@ -234,7 +234,7 @@ class Database:
                 wavelengths_e = [r[0] for r in results]
                 extinction = [r[1] for r in results]
             conn.close()
-            print("Material", pagedata['filepath'], "loaded.")
+            # print("Material", pagedata['filepath'], "loaded.")
             return Material.FromLists(pagedata,
                                       wavelengths_r=wavelengths_r,
                                       refractive=refractive,
