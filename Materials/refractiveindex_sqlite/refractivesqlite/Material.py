@@ -302,7 +302,7 @@ class FormulaRefractiveIndexData:
         :raises Exception:
         """
         wavelength /= 1000.0
-        if self.rangeMin <= wavelength <= self.rangeMax:
+        if self.rangeMin <= numpy.min(wavelength) and numpy.max(wavelength) <= self.rangeMax:
             formula_type = self.formula
             coefficients = self.coefficients
             n = 0
@@ -427,9 +427,9 @@ class TabulatedRefractiveIndexData:
         :raises Exception:
         """
         wavelength /= 1000.0
-        if self.rangeMin == self.rangeMax and self.rangeMin == wavelength:
+        if self.rangeMin == self.rangeMax and numpy.all(self.rangeMin == wavelength):
             return self.refractiveFunction
-        elif self.rangeMin <= wavelength <= self.rangeMax and\
+        elif self.rangeMin <= numpy.min(wavelength) and numpy.max(wavelength) <= self.rangeMax and\
                 self.rangeMin != self.rangeMax:
             return self.refractiveFunction(wavelength)
         else:
@@ -489,7 +489,7 @@ class ExtinctionCoefficientData:
         :raises Exception:
         """
         wavelength /= 1000.0
-        if self.rangeMin <= wavelength <= self.rangeMax:
+        if self.rangeMin <= numpy.min(wavelength) and numpy.max(wavelength) <= self.rangeMax:
             return self.extCoeffFunction(wavelength)
         else:
             raise Exception('Wavelength {} is out of bounds.'

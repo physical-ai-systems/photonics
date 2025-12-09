@@ -2,7 +2,8 @@ import torch
 from Models.DirectEncoder import DirectEncoder
 from Models.SimpleEncoder import SimpleEncoder
 from Models.SimpleEncoderNextLayer import SimpleEncoderNextLayer
-from Loss.structure_loss import StructureLoss
+from Models.RefractiveEncoder import RefractiveEncoder
+from Loss.structure_loss import StructureLoss, RefractiveIndexLoss
 from Loss.next_token_loss import NextTokenLoss
 
 
@@ -20,6 +21,22 @@ def get_model(config, args, device):
     elif config.name == 'SimpleEncoderNextLayer':
         net = SimpleEncoderNextLayer(config=config)
         loss = NextTokenLoss(config['thickness_range'], config.get('thickness_steps', 1))
+        vae = None
+    elif config.name == 'RefractiveEncoder':
+        net = RefractiveEncoder(config=config)
+        # Map arguments for RefractiveIndexLoss
+        loss_args = {}
+        if 'lambda_thickness' in args.losses:
+            loss_args['lambda_thickness'] = args.losses['lambda_thickness']
+        if 'lambda_refractive' in args.losses:
+            loss_args['lambda_refractive'] = args.losses['lambda_refractive']
+        elif 'lambda_material' in args.losses: # Fallback/Mapping
+            loss_args['lambda_refractive'] = args.losses['lambda_material']
+        
+        if 'lambda_quantizer' in args.losses:
+            loss_args['lambda_quantizer'] = args.losses['lambda_quantizer']
+            
+        loss = RefractiveIndexLoss(**loss_args)
         vae = None
     else:
         raise ValueError(f"Model {config.name} not found or not supported in this cleanup.")

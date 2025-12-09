@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from Models.Layers.blocks import ResidualAttentionBlock, _expand_token
+from Models.quantizer import VectorQuantizer
 
 class RefractiveEncoder(nn.Module):
     def __init__(self, config):
@@ -45,6 +46,12 @@ class RefractiveEncoder(nn.Module):
         
         # Post-transformer normalization
         self.ln_post = nn.LayerNorm(self.width)
+
+        # Quantizer
+        if 'vq_config' in config:
+             self.quantizer = VectorQuantizer(**config['vq_config'])
+        else:
+             self.quantizer = None
         
         # Output heads
         self.thickness_head = nn.Linear(self.width * self.num_latent_tokens, self.structure_layers)
@@ -74,6 +81,7 @@ class RefractiveEncoder(nn.Module):
         Returns:
             thickness: (Batch_Size, Structure_Layers) - Predicted thicknesses
             refractive_indices: (Batch_Size, Structure_Layers, Spectrum_Len, 2) - Predicted complex refractive indices (n, k)
+            vq_loss: Scalar tensor or 0
         """
         spectrum = spectrum.float()
         batch_size = spectrum.shape[0]
@@ -103,6 +111,17 @@ class RefractiveEncoder(nn.Module):
         # Extract and process latent tokens
         latent_tokens = x[:, 1 + self.num_latent_tokens:]  # Skip class token and spectrum token
         latent_tokens = self.ln_post(latent_tokens)
+
+        vq_loss = torch.tensor(0.0, device=x.device)
+        if self.quantizer is not None:
+            # latent_tokens: (B, N, C)
+            # VectorQuantizer expects (B, C, H, W)
+            z = latent_tokens.permute(0, 2, 1).unsqueeze(-1) # (B, C, N, 1)
+            z_q, vq_result = self.quantizer(z)
+            
+            # z_q is (B, C, N, 1)
+            latent_tokens = z_q.squeeze(-1).permute(0, 2, 1).contiguous() # (B, N, C)
+            vq_loss = vq_result['quantizer_loss']
         
         # Generate predictions from latent tokens
         flat_latents = latent_tokens.view(batch_size, -1).contiguous()
@@ -111,4 +130,4 @@ class RefractiveEncoder(nn.Module):
         material_out = self.material_head(flat_latents)  # (B, Structure_Layers * Spectrum_Len * 2)
         refractive_indices = material_out.view(batch_size, self.structure_layers, self.spectrum_len, 2) # (B, Structure_Layers, Spectrum_Len, 2)
         
-        return thickness, refractive_indices
+        return thickness, refractive_indices, vq_loss

@@ -29,7 +29,8 @@ class PhotonicTransferMatrixFast:
         # This function applies Snell's law: n1 * sin(theta1) = n2 * sin(theta2)
         # Use clamp to avoid numerical issues with asin (domain: [-1, 1])
         sin_theta2 = (n1 / n2) * torch.sin(theta1)
-        sin_theta2 = torch.clamp(sin_theta2, -1.0, 1.0)  # Ensure valid domain for asin
+        if not sin_theta2.is_complex():
+            sin_theta2 = torch.clamp(sin_theta2, -1.0, 1.0)  # Ensure valid domain for asin
         theta2 = torch.asin(sin_theta2)      
         return theta2
     

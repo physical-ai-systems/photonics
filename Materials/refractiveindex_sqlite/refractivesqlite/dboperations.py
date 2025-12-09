@@ -3,9 +3,7 @@ import os
 import yaml
 import sqlite3
 import numpy as np
-
-from Materials.refractiveindex_sqlite.refractivesqlite import material
-from Materials.refractiveindex_sqlite.refractivesqlite.material import Material
+from Materials.refractiveindex_sqlite.refractivesqlite.Material import Material
 
 Shelf = namedtuple('Shelf', ['shelf', 'name'])
 Book = namedtuple('Book', ['book', 'name'])
@@ -466,7 +464,7 @@ def _populate_sqlite_database(refractiveindex_db_path,
     c = conn.cursor()
     for e in entries:
         try:
-            mat = material.Material(filename=e.page.path,
+            mat = Material(filename=e.page.path,
                                     interpolation_points=interpolation_points)
             hasrefractive = 0
             hasextinction = 0
