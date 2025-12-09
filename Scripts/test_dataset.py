@@ -18,7 +18,7 @@ def main():
 
 def main1():
     dataset = MaterialDataset(
-        num_layers=4,
+        structure_layers=4,
         ranges=(400, 700),
         steps=1,
         dataset_size=1000)

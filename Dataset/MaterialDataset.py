@@ -3,8 +3,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import os
 from Methods.TransferMatrixMethod.PhotonicTransferMatrixFast import PhotonicTransferMatrixFast
-from Methods.TransferMatrixMethod.Structure import Structure
-from Methods.TransferMatrixMethod.Layer import Layer
+from Methods.TransferMatrixMethod.Layer import MultiLayer
 from Methods.TransferMatrixMethod.Wavelength import WaveLength
 from Materials.Materials import Material
 from Methods.PhysicalQuantity import PhysicalQuantity
@@ -157,8 +156,14 @@ class MaterialDataset(Dataset):
         
         layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
 
-        air_boundary = Material(self.wavelength, name="Air", refractive_index=1.0)
-        substrate = Material(self.wavelength, name="SiO2", refractive_index=1.4618)
+        # Boundary Construction (Air and SiO2)
+        air_ri = torch.ones_like(self.wavelength.values, dtype=torch.complex64) * 1.0
+        sio2_ri = torch.ones_like(self.wavelength.values, dtype=torch.complex64) * 1.4618
+        
+        boundary_refractive_indices = torch.stack([air_ri, sio2_ri], dim=1)
+        
+        boundary_mat = Material(self.wavelength, name="Boundary", refractive_index=boundary_refractive_indices)
+        boundary_layers = MultiLayer(material=boundary_mat, thickness=None)
 
         thickness_pq = PhysicalQuantity(
             values=layer_thickness_exp,
@@ -167,21 +172,29 @@ class MaterialDataset(Dataset):
             name="Layer_Thickness"
         )
         
-        layers = []
-        for i in range(self.structure_layers):
-            mat = Material(
-                self.wavelength, 
-                name=f"L{i}", 
-                refractive_index=refractive_indices[:, i, :]
-            )
-            layers.append(Layer(material=mat, thickness=thickness_pq.values[:, i, :]))
-            
-        struct = Structure(
-            layers=[Layer(air_boundary)] + layers + [Layer(substrate)], 
-            layers_parameters={'method': 'multi_layer'}
+        wl_values = self.wavelength.values.unsqueeze(1)
+        wl_struct = WaveLength(
+            values=wl_values,
+            units=self.units,
+            unit_prefix=self.unit_prefix,
+            ranges=None,
+            steps=None
         )
+        wl_struct.to(self.device)
+
+        structure_mat = Material(
+            wl_struct, 
+            name="Structure", 
+            refractive_index=refractive_indices
+        )
+        layers = MultiLayer(material=structure_mat, thickness=thickness_pq)
         
-        R, T = self.method.Reflectance_from_layers(struct.layers, theta_0=0, mode='TE')
+        R, T = self.method.Reflectance_from_layers(
+            layers, 
+            boundary_layers, 
+            theta_0=torch.tensor(0.0).to(self.device), 
+            mode='TE'
+        )
         
         min_th, max_th = self.thickness_range
         norm_thickness = (layer_thickness - min_th) / (max_th - min_th)
