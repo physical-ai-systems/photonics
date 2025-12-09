@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from Models.Layers.blocks import ResidualAttentionBlock
+from Models.quantizer import VectorQuantizer
 
 class SimpleEncoderNextLayer(nn.Module):
     def __init__(self, config):
@@ -39,6 +40,12 @@ class SimpleEncoderNextLayer(nn.Module):
         ])
         self.ln_post = nn.LayerNorm(self.width)
         
+        # Quantizer
+        if 'vq_config' in config:
+             self.quantizer = VectorQuantizer(**config['vq_config'])
+        else:
+             self.quantizer = None
+
         # Head
         self.head = nn.Linear(self.width, self.thickness_vocab_size)
         
@@ -111,9 +118,18 @@ class SimpleEncoderNextLayer(nn.Module):
         start_idx = self.spectrum_num_tokens - 1
         x_out = x[:, start_idx:, :]
         
+        vq_loss = torch.tensor(0.0, device=x.device)
+        if self.quantizer is not None:
+            # x_out: (B, Seq_Len, Width)
+            # VectorQuantizer expects (B, C, H, W)
+            z = x_out.permute(0, 2, 1).unsqueeze(-1) # (B, Width, Seq_Len, 1)
+            z_q, vq_result = self.quantizer(z)
+            x_out = z_q.squeeze(-1).permute(0, 2, 1).contiguous()
+            vq_loss = vq_result['quantizer_loss']
+
         logits = self.head(x_out) # (B, L+1, Vocab)
         
-        return logits
+        return logits, vq_loss
 
     @torch.no_grad()
     def generate(self, spectrum):
@@ -151,6 +167,12 @@ class SimpleEncoderNextLayer(nn.Module):
             
             # Predict next token from the last embedding
             last_token_embed = x_out[:, -1, :] # (B, D)
+            
+            if self.quantizer is not None:
+                z = last_token_embed.unsqueeze(-1).unsqueeze(-1) # (B, D, 1, 1)
+                z_q, _ = self.quantizer(z)
+                last_token_embed = z_q.squeeze(-1).squeeze(-1)
+
             logits = self.head(last_token_embed) # (B, Vocab)
             
             # Greedy decoding

@@ -20,7 +20,8 @@ def get_model(config, args, device):
         vae = None
     elif config.name == 'SimpleEncoderNextLayer':
         net = SimpleEncoderNextLayer(config=config)
-        loss = NextTokenLoss(config['thickness_range'], config.get('thickness_steps', 1))
+        lambda_quantizer = args.losses.get('lambda_quantizer', 1.0)
+        loss = NextTokenLoss(config['thickness_range'], config.get('thickness_steps', 1), lambda_quantizer=lambda_quantizer)
         vae = None
     elif config.name == 'RefractiveEncoder':
         net = RefractiveEncoder(config=config)
