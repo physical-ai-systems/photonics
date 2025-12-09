@@ -104,12 +104,8 @@ def evaluate_test_set(net, test_dataloader, experiment_path, accelerator, logger
             loss_per_sample_cpu = loss_per_sample.cpu().numpy()
             all_losses.extend(loss_per_sample_cpu)
             
-            # Denormalize thickness
-            pred_thickness_denorm = output * (thickness_max - thickness_min) + thickness_min
-            target_thickness_denorm = target_thickness * (thickness_max - thickness_min) + thickness_min
-            
             # Compute spectrum
-            R_calc, T_calc = dataset.compute_spectrum(pred_thickness_denorm.to(device), batch['material_choice'].to(device))
+            R_calc, T_calc = dataset.compute_spectrum(output.to(device), batch['material_choice'].to(device))
             
             batch_size = output.shape[0]
             for b in range(batch_size):
@@ -123,7 +119,7 @@ def evaluate_test_set(net, test_dataloader, experiment_path, accelerator, logger
                 plot_sample_spectrum(wavelengths, target_R, pred_R, idx, loss_per_sample_cpu[b], plots_dir)
 
                 # Reconstruct structure for visualization
-                save_structure_plots(dataset, batch['material_choice'][b], pred_thickness_denorm[b], target_thickness_denorm[b], plots_dir, f'{idx}', f'{idx}')
+                save_structure_plots(dataset, batch['material_choice'][b], output[b], target_thickness[b], plots_dir, f'{idx}', f'{idx}')
                 
     # Save losses to CSV
     if accelerator.is_main_process:
