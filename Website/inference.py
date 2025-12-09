@@ -14,7 +14,7 @@ from Utils.args import test_options
 from Dataset.TMM_Fast import PhotonicDatasetTMMFast
 
 class InferenceModel:
-    def __init__(self, experiment_name='test_experiment', config_name='simple_encoder'):
+    def __init__(self, experiment_name='test_experiment', config_name='SimpleEncoderNextLayer'):
         self.repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -88,7 +88,11 @@ class InferenceModel:
         spectrum_tensor = torch.tensor(spectrum, dtype=torch.float32).unsqueeze(0).to(self.device)
         
         with torch.no_grad():
-            outputs = self.net(spectrum_tensor)
+            if self.config.name == 'SimpleEncoderNextLayer':
+                unwrapped_net = self.accelerator.unwrap_model(self.net)
+                outputs = unwrapped_net.generate(spectrum_tensor)
+            else:
+                outputs = self.net(spectrum_tensor)
             
             if isinstance(outputs, tuple):
                 thickness, material_logits = outputs
@@ -103,10 +107,18 @@ class InferenceModel:
                 num_layers = thickness.shape[1]
                 material_indices = (torch.arange(num_layers, device=self.device) % 2).unsqueeze(0).repeat(thickness.shape[0], 1)
             
+        # Calculate produced spectrum
+        R_calc, T_calc = self.tmm.compute_spectrum(thickness.cpu(), material_indices.cpu())
+        produced_spectrum = R_calc.cpu().numpy()[0]
+
         # Post-process
         # Denormalize thickness
-        min_th = 20
-        max_th = 200
+        if 'thickness_range' in self.config:
+            min_th = self.config.thickness_range[0]
+            max_th = self.config.thickness_range[1]
+        else:
+            min_th = 20
+            max_th = 200
         
         # Keep as tensor for TMM
         thickness_nm = thickness * (max_th - min_th) + min_th
@@ -114,9 +126,6 @@ class InferenceModel:
         # Material indices
         # material_indices is already calculated above
         
-        # Calculate produced spectrum
-        R_calc, T_calc = self.tmm.compute_spectrum(thickness_nm.cpu(), material_indices.cpu())
-        produced_spectrum = R_calc.cpu().numpy()[0]
 
         # Convert to numpy for layers list
         thickness_np = thickness_nm.cpu().numpy()[0]
