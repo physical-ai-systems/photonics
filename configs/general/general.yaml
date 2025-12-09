@@ -17,7 +17,7 @@ general:
     dataset_size: 8000
     test_dataset_size: 4
     spectrum_len: 301 # (700-400)/1 + 1
-    num_materials: 2
+    # num_materials: 2
 train:
   num_workers: 16
   save_checkpoints: true
