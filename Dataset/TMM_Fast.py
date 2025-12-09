@@ -226,6 +226,7 @@ class PhotonicDatasetTMMFast(Dataset):
         
         boundary_layers = MultiLayer(material=Material(self.wavelength, name="Boundary_Material", refractive_index=boundary_refractive_indices), thickness=None)
 
+        layer_thickness = layer_thickness * (self.thickness_range[1] - self.thickness_range[0]) + self.thickness_range[0]  # Denormalize thickness
         # Expand thickness to match wavelength dimension
         layer_thickness_exp = layer_thickness.unsqueeze(-1).repeat(1, 1, self.wavelength.shape[-1])
         
