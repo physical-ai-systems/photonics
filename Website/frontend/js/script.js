@@ -1,4 +1,5 @@
   document.addEventListener('DOMContentLoaded', () => {
+            initializeTable();
             updateInputPlot();
             const table = document.getElementById('inputTable');
             if (table) {
@@ -9,6 +10,14 @@
                 };
                 table.addEventListener('input', handler, true);
                 table.addEventListener('change', handler, true);
+            }
+
+            const stepSelect = document.getElementById('stepSelect');
+            if (stepSelect) {
+                stepSelect.addEventListener('change', () => {
+                    initializeTable();
+                    updateInputPlot();
+                });
             }
         });
 
@@ -319,4 +328,49 @@
 
             Plotly.newPlot('outputPlot', traces, layout, {responsive: true});
             document.getElementById('statusText').innerText = "Structure Built (Sorted by λ).";
+        }
+
+        function initializeTable() {
+            const headerRow = document.querySelector('#inputTable thead tr');
+            const bodyRows = document.querySelectorAll('#inputTable tbody tr');
+            
+            // Clear existing value columns (keep the first one)
+            while (headerRow.children.length > 1) {
+                headerRow.removeChild(headerRow.lastElementChild);
+            }
+            while (bodyRows[0].children.length > 1) {
+                bodyRows[0].removeChild(bodyRows[0].lastElementChild);
+            }
+            while (bodyRows[1].children.length > 1) {
+                bodyRows[1].removeChild(bodyRows[1].lastElementChild);
+            }
+
+            const startLambda = 400;
+            const endLambda = 700;
+            const stepSelect = document.getElementById('stepSelect');
+            const step = stepSelect ? parseInt(stepSelect.value) : 30;
+            let colIndex = 1;
+
+            for (let lambda = startLambda; lambda <= endLambda; lambda += step) {
+                // Add Header
+                const th = document.createElement('th');
+                th.className = "py-2 text-center";
+                th.innerText = `${colIndex}`;
+                headerRow.appendChild(th);
+
+                // Add Lambda Input
+                const tdLambda = document.createElement('td');
+                tdLambda.className = "p-1";
+                tdLambda.innerHTML = `<input type="number" value="${lambda}" readonly class="w-full bg-slate-100 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-blue-400 outline-none input-lambda cursor-not-allowed">`;
+                bodyRows[0].appendChild(tdLambda);
+
+                // Add R Input (Random)
+                const randomR = Math.random().toFixed(2);
+                const tdR = document.createElement('td');
+                tdR.className = "p-1";
+                tdR.innerHTML = `<input type="number" value="${randomR}" min="0" max="1" step="0.01" class="w-full bg-slate-50 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-purple-400 outline-none input-r">`;
+                bodyRows[1].appendChild(tdR);
+
+                colIndex++;
+            }
         }
