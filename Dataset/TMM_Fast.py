@@ -1,7 +1,6 @@
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-from Methods.TransferMatrixMethod.PhotonicTransferMatrix     import PhotonicTransferMatrix
 from Methods.TransferMatrixMethod.PhotonicTransferMatrixFast import PhotonicTransferMatrixFast
 from Methods.TransferMatrixMethod.Structure                  import Structure, VectorizedStructure
 from Methods.TransferMatrixMethod.Layer                      import Layer, MultiLayer

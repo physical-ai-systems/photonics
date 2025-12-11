@@ -1,10 +1,9 @@
 import torch
-import numpy as np
 class PhotonicTransferMatrix:
     def __init__(self, *args, **kwargs):
                  
         self.name       = 'PhotonicTransferMatrix'
-        self.pi         = np.pi
+        self.pi         = torch.pi
 
     def p_value(self, material, mode, theta):
         # This function gives p value
@@ -116,33 +115,6 @@ class PhotonicTransferMatrix:
         return R, T
     
 
-class PhotonicTransferMatrixVectorized(PhotonicTransferMatrix):
-    '''
-    Vectorized version of PhotonicTransferMatrix for batch processing
-    [B, layer, wavelengths]
-    list layers -> layer[B, layer_num, wavelengths]
-                -> thickness[B, layer_num]
-                -> material: refractive_index[B, layer_num, wavelengths]
-                -> theta [B] or scalar
-
-
-    Returns:       Reflectance [B, wavelengths]
-
-    ----
-    n0 sin(theta0) = n1 sin(theta1)
-    n1 sin(theta1) = n2 sin(theta2)
-
-    n2 sin(theta2) = n0 sin(theta0)
-
-
-    n2 sin(theta2) = n3 sin(theta3)
-    n3 sin(theta3) = n4 sin(theta4)
-    n4 sin(theta4) = n5 sin(theta5)
-    '''
-    def __init__(self, *args, **kwargs):
-        super(PhotonicTransferMatrixVectorized, self).__init__(*args, **kwargs)
-        self.name = 'PhotonicTransferMatrixVectorized'
-        self.pi         = np.pi
 
 
     
