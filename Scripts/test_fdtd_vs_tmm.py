@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from Methods.TransferMatrixMethod.PhotonicTransferMatrixFast import PhotonicTransferMatrixFast
-from Methods.FDTD.FDTD_1D import run_fdtd_1d
+from Methods.FDTD.FDTD_1D import FDTD
 
 class MockObject:
     def __init__(self, **kwargs):
@@ -61,14 +61,14 @@ def test_fdtd_vs_tmm():
     center_wl = (lambda_min + lambda_max) / 2
     bandwidth = lambda_max - lambda_min
     
-    fdtd_res = run_fdtd_1d(
-        thicknesses, 
-        refractive_indices,
+    fdtd_solver = FDTD(
         center_wavelength=center_wl,
         bandwidth=bandwidth + 100e-9,
         resolution=5e-9,
         device='cuda' if torch.cuda.is_available() else 'cpu'
     )
+    
+    fdtd_res = fdtd_solver.run(thicknesses, refractive_indices)
     
     fdtd_freqs = fdtd_res['frequencies']
     fdtd_trans = fdtd_res['transmission_spectrum']
@@ -92,6 +92,8 @@ def test_fdtd_vs_tmm():
     plt.title('Comparison: TMM vs FDTD')
     plt.legend()
     plt.grid(True, alpha=0.3)
+    
+    os.makedirs('Methods/FDTD/vis', exist_ok=True)
     plt.savefig('Methods/FDTD/vis/fdtd_vs_tmm.png')
 
 if __name__ == "__main__":

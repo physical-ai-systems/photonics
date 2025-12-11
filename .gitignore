@@ -203,3 +203,4 @@ cython_debug/
 #.idea/
 
 Material_Analysis
+Methods/FDTD/vis/
